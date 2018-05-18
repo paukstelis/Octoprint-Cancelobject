@@ -1,0 +1,4 @@
+include README.md
+recursive-include octoprint_cancelobject/templates *
+recursive-include octoprint_cancelobject/translations *
+recursive-include octoprint_cancelobject/static *
