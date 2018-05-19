@@ -74,7 +74,7 @@ $(function() {
         self.onDataUpdaterPluginMessage = function (plugin, data) {
             
         	if (data.navBarActive){
-                self.navBarActive(data.navBarActive);
+                self.navBarActive('Current Object: '+data.navBarActive);
                 //new PNotify({
                 //    title: 'Attention',
                 //    text: data.navBarActive,

@@ -40,6 +40,8 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
 			line = "#Object "+obj+"\n"
 		return line
 
+#TODO: Add all the neccessary reset stuff on various events (cancel, unload, etc.)
+
 class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 						 octoprint.plugin.SettingsPlugin,
 						 octoprint.plugin.AssetPlugin,
@@ -52,6 +54,8 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		self.object_list = []
 		self.skipping = False
 		self.active_object = None
+		
+		
 
 	def get_assets(self):
 		# Define your plugin's asset files to automatically include in the
@@ -62,9 +66,9 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		)
 		
 	def get_settings_defaults(self):
-		return dict(url="https://en.wikipedia.org/wiki/Hello_world",
-					object_regex="; process (.*)",
-					retract = 0.0)
+		return dict(object_regex="; process (.*)",
+					retract = 0.0,
+					shownav = 'checked')
 
 	def get_template_configs(self):
 		return [
@@ -111,11 +115,13 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 			self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
 
 	def updatedisplay(self):
-		navmessage = "None"
+		navmessage = ""
+		
 		if self.active_object:
 			navmessage=str(self.active_object)
-			
-		self._plugin_manager.send_plugin_message(self._identifier, dict(navBarActive=navmessage))
+		
+		if self._settings.get(['shownav']):
+			self._plugin_manager.send_plugin_message(self._identifier, dict(navBarActive=navmessage))
 		
 	def on_event(self, event, payload):
 		if event == Events.FILE_SELECTED:
@@ -177,13 +183,14 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		self.skipping = True
 		
 	def cancel_object(self, cancelled):
-		print "cancel called"
+		self._logger.info("Object %s cancelled" % cancelled)
 		obj = self.get_entry(cancelled)
 		obj["cancelled"] = True
 		if obj["active"]:
 			self.skipping = True
 		  
-	def check_queue(self, comm_instance, phase, cmd, cmd_type, gcode, tags, *args, **kwargs):	 
+	def check_queue(self, comm_instance, phase, cmd, cmd_type, gcode, tags, *args, **kwargs):
+		
 		if cmd.startswith('#'):
 			obj = self.check_object(cmd)
 			if obj:
@@ -192,11 +199,14 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 					self._logger.info("Hit a cancelled object, %s" % obj)
 					self.skipping = True
 				else:
-				#we are coming out of a skipping block, reset extrusion
+				#we are coming out of a skipping block, reset extrusion, retract
 					if self.skipping:
+						retract = self._settings.get(['retract'])
 						self._logger.info("Coming out of skipping block")
-						#TODO: check settings to see if we should inject a retraction as well
-						cmd = "G92 E0"
+						if retract:
+							cmd = [("G92 E0",),("G1 E-{0}".format(retract),)]
+						else:
+							cmd = "G92 E0"
 						self.skipping = False
 						
 					self.active_object = entry["object"]
