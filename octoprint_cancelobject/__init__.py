@@ -190,6 +190,10 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		obj["cancelled"] = True
 		if obj["active"]:
 			self.skipping = True
+			if self._settings.get(["pause"]):
+				self._logger.info("Pausing print.")
+                self._printer.pause_print()
+				
 		  
 	def check_queue(self, comm_instance, phase, cmd, cmd_type, gcode, tags, *args, **kwargs):
 		
