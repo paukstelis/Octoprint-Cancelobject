@@ -7,12 +7,22 @@
         <br>
         <label class="control-label">{{ _('Retract on cancel') }}</label>
         <div class="controls">
-            <input type="number" min="0" step=0.1 data-bind="value: settings.plugins.cancelobject.retract">
+            <input type="number" class="input-mini text-right" min="0" step=0.1 data-bind="value: settings.plugins.cancelobject.retract">
         </div>
         <br>
+        <label class="control-label">{{ _('Retract feedrate') }}</label>
         <div class="controls">
-        <label class="checkbox">Show object in NavBar</label>
+            <input type="number" class="input-mini text-right" min="10" step=1.0 data-bind="value: settings.plugins.cancelobject.retractfr">
+        </div>
+        <br>
+        <label class="control-label">{{ _('Show active in NavBar') }}</label>
+        <div class="controls">
         	<input type="checkbox" data-bind="checked: settings.plugins.cancelobject.shownav">
-         </div>
+        </div>
+        <br>
+        <label class="control-label">{{ _('Pause on cancel') }}</label>
+        <div class="controls">
+        	<input type="checkbox" data-bind="checked: settings.plugins.cancelobject.pause">
+        </div>
     </div>
 </form>

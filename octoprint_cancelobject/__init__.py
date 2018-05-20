@@ -68,7 +68,9 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 	def get_settings_defaults(self):
 		return dict(object_regex="; process (.*)",
 					retract = 0.0,
-					shownav = 'checked')
+					retractfr = 300,
+					shownav = 'true',
+					pause = 'false')
 
 	def get_template_configs(self):
 		return [
@@ -202,9 +204,10 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 				#we are coming out of a skipping block, reset extrusion, retract
 					if self.skipping:
 						retract = self._settings.get(['retract'])
+						retractfr = self._settings.get(['retractfr'])
 						self._logger.info("Coming out of skipping block")
 						if retract:
-							cmd = [("G92 E0",),("G1 E-{0}".format(retract),)]
+							cmd = [("G92 E0",),("G1 E-{0} F{1}".format(retract,retractfr),)]
 						else:
 							cmd = "G92 E0"
 						self.skipping = False
@@ -241,7 +244,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
 # can be overwritten via __plugin_xyz__ control properties. See the documentation for that.
-__plugin_name__ = "Cancelobject Plugin"
+__plugin_name__ = "Cancel Objects"
 
 def __plugin_load__():
 	global __plugin_implementation__
