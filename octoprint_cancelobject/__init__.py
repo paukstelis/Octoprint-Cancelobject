@@ -1,14 +1,6 @@
 # coding=utf-8
 from __future__ import absolute_import
 
-### (Don't forget to remove me)
-# This is a basic skeleton for your plugin's __init__.py. You probably want to adjust the class name of your plugin
-# as well as the plugin mixins it's subclassing from. This is really just a basic skeleton to get you started,
-# defining your plugin as a template plugin, settings and asset plugin. Feel free to add or remove mixins
-# as necessary.
-#
-# Take a look at the documentation on what other plugin mixins are available.
-
 import octoprint.plugin
 import octoprint.filemanager
 import octoprint.filemanager.util
@@ -23,6 +15,12 @@ from octoprint.events import Events
 OBJECT_REGEX = "; process (.*)"
 
 class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
+	
+	def __init__(self, fileBufferedReader, object_regex, reptag):
+		super(ModifyComments, self).__init__(fileBufferedReader)
+		self._object_regex = object_regex
+		self._reptag = reptag
+		self.pattern = re.compile(self._object_regex)
 	def process_line(self, line):
 
 		if line.startswith(";"):
@@ -33,11 +31,12 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
 		return line
 
 	def _matchComment(self, line):
-		pattern = re.compile(OBJECT_REGEX)
-		matched = pattern.match(line)
+		
+		matched = self.pattern.match(line)
 		if matched:
 			obj = matched.group(1)
-			line = "#Object "+obj+"\n"
+			line = "{0} {1}\n".format(self._reptag, obj)
+			#line = "#Object "+obj+"\n"
 		return line
 
 #TODO: Add all the neccessary reset stuff on various events (cancel, unload, etc.)
@@ -54,9 +53,14 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		self.object_list = []
 		self.skipping = False
 		self.active_object = None
+		self.object_regex = None
+		self.reptag = None
 		
+	def initialize(self):
+		self.object_regex = self._settings.get(["object_regex"])
+		self.reptag = self._settings.get(["reptag"])
+		self.reptagregex = re.compile("{0} (.*)".format(self.reptag))
 		
-
 	def get_assets(self):
 		# Define your plugin's asset files to automatically include in the
 		# core UI here.
@@ -67,6 +71,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		
 	def get_settings_defaults(self):
 		return dict(object_regex="; process (.*)",
+					reptag = "#Object",
 					retract = 0.0,
 					retractfr = 300,
 					shownav = 'true',
@@ -83,8 +88,9 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 
 		import os
 		name, _ = os.path.splitext(file_object.filename)
-
-		modfile = octoprint.filemanager.util.StreamWrapper(file_object.filename,ModifyComments(file_object.stream()))
+		obj_regex = self._settings.get(["object_regex"])
+		reptag = self._settings.get(["reptag"])
+		modfile = octoprint.filemanager.util.StreamWrapper(file_object.filename,ModifyComments(file_object.stream(),obj_regex,reptag))
 		
 		return modfile
 		
@@ -140,12 +146,14 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 							i=i+1
 					except (ValueError, RuntimeError):
 						print("Error")
+						
 			#Send objects to server
 			self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
 
 			
 	def process_line(self, line):
-		if line.startswith("#"):
+
+		if line.startswith(self.reptag[0]):
 			obj = self.check_object(line)
 			if obj:
 			#maybe it is faster to put them all in a list and uniquify with a set?
@@ -158,8 +166,8 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 				return None
 		
 	def check_object(self, line):
-		pattern = re.compile("#Object (.*)")
-		matched = pattern.match(line)
+
+		matched = self.reptagregex.match(line)
 		if matched:
 			obj = matched.group(1)
 			return obj

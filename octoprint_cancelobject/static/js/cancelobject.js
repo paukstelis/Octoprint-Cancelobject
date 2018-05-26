@@ -9,8 +9,8 @@ $(function() {
     function CancelobjectViewModel(parameters) {
     	var PLUGIN_ID = "cancelobject";
         var self = this;
-        self.settings = parameters[0];
-        self.loginStateViewModel = parameters[1];
+        self.loginState = parameters[0];
+        self.settings = parameters[1];
         self.navBarActive = ko.observable();
         self.ObjectList = ko.observableArray();
 
@@ -101,7 +101,7 @@ $(function() {
         // This is a list of dependencies to inject into the plugin, the order which you request
         // here is the order in which the dependencies will be injected into your view model upon
         // instantiation via the parameters argument
-        ["settingsViewModel","loginStateViewModel"],
+        ["loginStateViewModel","settingsViewModel"],
 
         // Finally, this is the list of selectors for all elements we want this view model to be bound to.
         
