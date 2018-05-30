@@ -1,27 +1,42 @@
 <form class="form-horizontal">
     <div class="control-group">
+        <h3>Regular Expressions</h3>
+        <p>
         <label class="control-label">{{ _('Object Regular Expression') }}</label>
         <div class="controls">
+        	<i class="icon icon-info-sign" title="Your slicer's object-specific comment line. Uses standard python regular expressions." data-toggle="tooltip"></i>
             <input type="text" class="input-block-level" data-bind="value: settings.plugins.cancelobject.object_regex">     
         </div>
         <br>
+        <label class="control-label">{{ _('Object Replacement Tag') }}</label>
+        <div class="controls">
+            <i class="icon icon-info-sign" title="Replacement tag for object comments, do not use semi-colon comments as these get stripped" data-toggle="tooltip"></i>
+            <input type="text" class="input-block-level" data-bind="value: settings.plugins.cancelobject.reptag">     
+        </div>
+        <h3>Retraction</h3>
+        <p>
         <label class="control-label">{{ _('Retract on cancel') }}</label>
         <div class="controls">
+        	<i class="icon icon-info-sign" title="Amount to retract (mm) after skipping." data-toggle="tooltip"></i>
             <input type="number" class="input-mini text-right" min="0" step=0.1 data-bind="value: settings.plugins.cancelobject.retract">
         </div>
         <br>
         <label class="control-label">{{ _('Retract feedrate') }}</label>
         <div class="controls">
+            <i class="icon icon-info-sign" title="Retraction feedrate (mm/s)" data-toggle="tooltip"></i>
             <input type="number" class="input-mini text-right" min="10" step=1.0 data-bind="value: settings.plugins.cancelobject.retractfr">
         </div>
-        <br>
+        <h3>Other</h3>
+        <p>
         <label class="control-label">{{ _('Show active in NavBar') }}</label>
         <div class="controls">
+        	<i class="icon icon-info-sign" title="Show the active object in NavBar. Note: this switches when object is queued, not when printing move has begun." data-toggle="tooltip"></i>
         	<input type="checkbox" data-bind="checked: settings.plugins.cancelobject.shownav">
         </div>
         <br>
         <label class="control-label">{{ _('Pause on cancel') }}</label>
         <div class="controls">
+        	<i class="icon icon-info-sign" title="Issue an octoprint pause if the active object is cancelled" data-toggle="tooltip"></i>
         	<input type="checkbox" data-bind="checked: settings.plugins.cancelobject.pause">
         </div>
     </div>

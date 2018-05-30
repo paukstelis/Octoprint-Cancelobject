@@ -65,8 +65,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		# Define your plugin's asset files to automatically include in the
 		# core UI here.
 		return dict(
-			js=["js/cancelobject.js"],
-			
+			js=["js/cancelobject.js"]
 		)
 		
 	def get_settings_defaults(self):
@@ -132,7 +131,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 			self._plugin_manager.send_plugin_message(self._identifier, dict(navBarActive=navmessage))
 		
 	def on_event(self, event, payload):
-		if event == Events.FILE_SELECTED:
+		if event in (Events.FILE_SELECTED, Events.PRINT_STARTED):
 			self.object_list = []
 			selectedFile = payload.get("file", "")
 			with open(selectedFile, "r") as f:
@@ -146,10 +145,14 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 							i=i+1
 					except (ValueError, RuntimeError):
 						print("Error")
-						
 			#Send objects to server
 			self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
 
+		elif event in (Events.PRINT_DONE, Events.PRINT_FAILED, Events.PRINT_CANCELLED):
+			self.object_list = []
+			self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
+			self.active_object = 'None'
+			self._plugin_manager.send_plugin_message(self._identifier, dict(navBarActive=self.active_object))		
 			
 	def process_line(self, line):
 
@@ -198,13 +201,11 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		obj["cancelled"] = True
 		if obj["active"]:
 			self.skipping = True
-			if self._settings.get(["pause"]):
+			if self._settings.get(["pause"]) == 'true':
 				self._logger.info("Pausing print.")
                 self._printer.pause_print()
-				
-		  
+				  
 	def check_queue(self, comm_instance, phase, cmd, cmd_type, gcode, tags, *args, **kwargs):
-		
 		if cmd.startswith('#'):
 			obj = self.check_object(cmd)
 			if obj:
@@ -228,7 +229,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 					self.updatedisplay()
 								
 		if self.skipping:
-			return '; object skipped'
+			return None,
 		else:
 			return cmd
 			
@@ -251,8 +252,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 				pip="https://github.com/you/OctoPrint-Cancelobject/archive/{target_version}.zip"
 			)
 		)
-
-
+		
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
 # can be overwritten via __plugin_xyz__ control properties. See the documentation for that.
@@ -263,8 +263,7 @@ def __plugin_load__():
 	__plugin_implementation__ = CancelobjectPlugin()
 
 	global __plugin_hooks__
-	__plugin_hooks__ = {
-		
+	__plugin_hooks__ = {	
 		"octoprint.filemanager.preprocessor": __plugin_implementation__.modify_file,
 		"octoprint.comm.protocol.gcode.queuing": __plugin_implementation__.check_queue
 	}

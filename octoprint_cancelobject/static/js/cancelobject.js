@@ -34,20 +34,23 @@ $(function() {
         self.updateObjectList = function() {
         	//start a new table
         	var table = document.createElement("table");
-        	var columnCount = self.ObjectList[0].length;
-        	for (var i = 0; i < self.ObjectList.length; i++) {
-        		var row = table.insertRow(-1);
-        		var cell1 = row.insertCell(-1);
-        		cell1.innerHTML = self.ObjectList[i]["object"];
-        		var cell2 = row.insertCell(-1);
-        		//Can't seem to figure out how to have disabled = false and keep it active, so doing this
-        		if (self.ObjectList[i]["cancelled"]) {
-        			cell2.innerHTML = '<button class="cancel-btn" disabled="disabled" value="'+cell1.innerHTML+'">Cancel</button>';	
-        		}
-        		else {
-        			cell2.innerHTML = '<button class="cancel-btn" value="'+cell1.innerHTML+'">Cancel</button>';
+        	if (self.ObjectList.length > 0) {
+        		var columnCount = self.ObjectList[0].length;
+        		for (var i = 0; i < self.ObjectList.length; i++) {
+        			var row = table.insertRow(-1);
+        			var cell1 = row.insertCell(-1);
+        			cell1.innerHTML = self.ObjectList[i]["object"];
+        			var cell2 = row.insertCell(-1);
+        			//Can't seem to figure out how to have disabled = false and keep it active, so doing this
+        			if (self.ObjectList[i]["cancelled"]) {
+        				cell2.innerHTML = '<button class="cancel-btn" disabled="disabled" value="'+cell1.innerHTML+'">Cancel</button>';	
+        			}
+        			else {
+        				cell2.innerHTML = '<button class="cancel-btn" value="'+cell1.innerHTML+'">Cancel</button>';
+        			}
         		}
         	}
+        	
         	var divContainer = document.getElementById("cancel-table");
         	divContainer.innerHTML = "";
         	divContainer.appendChild(table);
@@ -71,16 +74,9 @@ $(function() {
               });
     	});
     	
-        self.onDataUpdaterPluginMessage = function (plugin, data) {
-            
+        self.onDataUpdaterPluginMessage = function (plugin, data) {          
         	if (data.navBarActive){
                 self.navBarActive('Current Object: '+data.navBarActive);
-                //new PNotify({
-                //    title: 'Attention',
-                //    text: data.navBarActive,
-                //    type: 'error',
-                //    hide: false
-                //    });
             }
             //New list of objects
             if (data.objects){
@@ -90,8 +86,6 @@ $(function() {
         }
     }
     
-
-
     // This is how our plugin registers itself with the application, by adding some configuration
     // information to the global variable OCTOPRINT_VIEWMODELS
     OCTOPRINT_VIEWMODELS.push([
