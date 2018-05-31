@@ -48,8 +48,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 						 octoprint.plugin.SimpleApiPlugin,
 						 octoprint.plugin.EventHandlerPlugin):
 
-	def __init__(self):
-		
+	def __init__(self):		
 		self.object_list = []
 		self.skipping = False
 		self.active_object = None
@@ -73,8 +72,8 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 					reptag = "#Object",
 					retract = 0.0,
 					retractfr = 300,
-					shownav = 'true',
-					pause = 'false')
+					shownav = True,
+					pause = False)
 
 	def get_template_configs(self):
 		return [
@@ -110,7 +109,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 				return "Insufficient rights", 403
 				
 			cancelled = data["cancelled"]
-			self._logger.info("cancel object called, cancelled is {cancelled}".format(**data))
+			#self._logger.info("cancel object called, cancelled is {cancelled}".format(**data))
 			self.cancel_object(cancelled)
 
 	def on_api_get(self, request):
@@ -155,7 +154,6 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 			self._plugin_manager.send_plugin_message(self._identifier, dict(navBarActive=self.active_object))		
 			
 	def process_line(self, line):
-
 		if line.startswith(self.reptag[0]):
 			obj = self.check_object(line)
 			if obj:
@@ -169,7 +167,6 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 				return None
 		
 	def check_object(self, line):
-
 		matched = self.reptagregex.match(line)
 		if matched:
 			obj = matched.group(1)
@@ -199,25 +196,32 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		self._logger.info("Object %s cancelled" % cancelled)
 		obj = self.get_entry(cancelled)
 		obj["cancelled"] = True
-		if obj["active"]:
+		self._logger.info("Active object is %s, cancelled is %s" % (self.active_object, obj["object"]))
+		if obj["object"] == self.active_object:
 			self.skipping = True
-			if self._settings.get(["pause"]) == 'true':
+			self._logger.info("Pausing print.")
+			if self._settings.getBoolean(["pause"]):
 				self._logger.info("Pausing print.")
-                self._printer.pause_print()
+				self._printer.pause_print()
+		else:
+			return
 				  
 	def check_queue(self, comm_instance, phase, cmd, cmd_type, gcode, tags, *args, **kwargs):
-		if cmd.startswith('#'):
+		if cmd.startswith(self.reptag[0]):
 			obj = self.check_object(cmd)
 			if obj:
+				#this just make sure we don't send this line to printer
+				cmd = None,
 				entry = self.get_entry(obj)
 				if entry["cancelled"]:
 					self._logger.info("Hit a cancelled object, %s" % obj)
 					self.skipping = True
+					
 				else:
 				#we are coming out of a skipping block, reset extrusion, retract
 					if self.skipping:
-						retract = self._settings.get(['retract'])
-						retractfr = self._settings.get(['retractfr'])
+						retract = self._settings.getFloat(['retract'])
+						retractfr = self._settings.getInt(['retractfr'])
 						self._logger.info("Coming out of skipping block")
 						if retract:
 							cmd = [("G92 E0",),("G1 E-{0} F{1}".format(retract,retractfr),)]
