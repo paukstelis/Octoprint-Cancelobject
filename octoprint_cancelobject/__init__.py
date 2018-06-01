@@ -12,8 +12,6 @@ from flask.ext.login import current_user
 
 from octoprint.events import Events
 
-OBJECT_REGEX = "; process (.*)"
-
 class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
 	
 	def __init__(self, fileBufferedReader, object_regex, reptag):
@@ -36,10 +34,7 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
 		if matched:
 			obj = matched.group(1)
 			line = "{0} {1}\n".format(self._reptag, obj)
-			#line = "#Object "+obj+"\n"
 		return line
-
-#TODO: Add all the neccessary reset stuff on various events (cancel, unload, etc.)
 
 class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 						 octoprint.plugin.SettingsPlugin,
@@ -110,17 +105,17 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 				
 			cancelled = data["cancelled"]
 			#self._logger.info("cancel object called, cancelled is {cancelled}".format(**data))
-			self.cancel_object(cancelled)
+			self._cancel_object(cancelled)
 
 	def on_api_get(self, request):
-		self.updateobjects()
-		self.updatedisplay()
+		self._updateobjects()
+		self._updatedisplay()
 		
-	def updateobjects(self):
+	def _updateobjects(self):
 		if len(self.object_list) > 0:
 			self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
 
-	def updatedisplay(self):
+	def _updatedisplay(self):
 		navmessage = ""
 		
 		if self.active_object:
@@ -155,10 +150,10 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 			
 	def process_line(self, line):
 		if line.startswith(self.reptag[0]):
-			obj = self.check_object(line)
+			obj = self._check_object(line)
 			if obj:
 			#maybe it is faster to put them all in a list and uniquify with a set?
-				entry = self.get_entry(obj)
+				entry = self._get_entry(obj)
 				if entry:
 					return None
 				else:
@@ -166,71 +161,51 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 			else:
 				return None
 		
-	def check_object(self, line):
+	def _check_object(self, line):
 		matched = self.reptagregex.match(line)
 		if matched:
 			obj = matched.group(1)
 			return obj
 		return None
 
-	def get_entry(self, name):
+	def _get_entry(self, name):
 		for o in self.object_list:
 			if o["object"] == name:
 				return o
 		return None
 	
-	def get_entry_byid(self, objid):
+	def _get_entry_byid(self, objid):
 		for o in self.object_list:
 			if o["id"] == objid:
 				return o
 		return None
-
-	#Not used anymore
-	def skip_to_next(self):
-		#skip the current object and put it in the cancel list
-		obj = self.get_entry(self.active_object)
-		obj["cancelled"] = True
-		self.skipping = True
 		
-	def cancel_object(self, cancelled):
+	def _cancel_object(self, cancelled):
 		self._logger.info("Object %s cancelled" % cancelled)
-		obj = self.get_entry(cancelled)
+		obj = self._get_entry(cancelled)
 		obj["cancelled"] = True
-		self._logger.info("Active object is %s, cancelled is %s" % (self.active_object, obj["object"]))
+		#self._logger.info("Active object is %s, cancelled is %s" % (self.active_object, obj["object"]))
 		if obj["object"] == self.active_object:
+			#if self._settings.get_boolean(["pause"]) == True:
+			#	self._printer.pause_print()
 			self.skipping = True
-			self._logger.info("Pausing print.")
-			if self._settings.getBoolean(["pause"]):
-				self._logger.info("Pausing print.")
-				self._printer.pause_print()
-		else:
-			return
 				  
 	def check_queue(self, comm_instance, phase, cmd, cmd_type, gcode, tags, *args, **kwargs):
 		if cmd.startswith(self.reptag[0]):
-			obj = self.check_object(cmd)
+			obj = self._check_object(cmd)
 			if obj:
 				#this just make sure we don't send this line to printer
 				cmd = None,
-				entry = self.get_entry(obj)
+				entry = self._get_entry(obj)
 				if entry["cancelled"]:
 					self._logger.info("Hit a cancelled object, %s" % obj)
 					self.skipping = True
-					
 				else:
-				#we are coming out of a skipping block, reset extrusion, retract
 					if self.skipping:
-						retract = self._settings.getFloat(['retract'])
-						retractfr = self._settings.getInt(['retractfr'])
-						self._logger.info("Coming out of skipping block")
-						if retract:
-							cmd = [("G92 E0",),("G1 E-{0} F{1}".format(retract,retractfr),)]
-						else:
-							cmd = "G92 E0"
+						#Do any post skip injection here
 						self.skipping = False
-						
 					self.active_object = entry["object"]
-					self.updatedisplay()
+					self._updatedisplay()
 								
 		if self.skipping:
 			return None,
