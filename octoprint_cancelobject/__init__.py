@@ -49,11 +49,25 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		self.active_object = None
 		self.object_regex = None
 		self.reptag = None
+		self.beforegcode = []
+		self.aftergcode = []
 		
 	def initialize(self):
 		self.object_regex = self._settings.get(["object_regex"])
 		self.reptag = self._settings.get(["reptag"])
 		self.reptagregex = re.compile("{0} (.*)".format(self.reptag))
+		try:
+			self.beforegcode = self._settings.get(["beforegcode"]).split(",")
+			#Remove any whitespace entries to avoid sending empty lines
+			self.beforegcode = filter(None, self.beforegcode)
+		except:
+			self._logger.info("No beforegcode defined")
+		try:
+			self.aftergcode = self._settings.get(["aftergcode"]).split(",")
+			#Remove any whitespace entries to avoid sending empty lines
+			self.aftergcode = filter(None, self.aftergcode)
+		except:
+			self._logger.info("No aftergcode defined")
 		
 	def get_assets(self):
 		# Define your plugin's asset files to automatically include in the
@@ -65,8 +79,8 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 	def get_settings_defaults(self):
 		return dict(object_regex="; process (.*)",
 					reptag = "#Object",
-					retract = 0.0,
-					retractfr = 300,
+					beforegcode = None,
+					aftergocde = None,
 					shownav = True,
 					pause = False)
 
@@ -194,15 +208,18 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		if cmd.startswith(self.reptag[0]):
 			obj = self._check_object(cmd)
 			if obj:
-				#this just make sure we don't send this line to printer
 				cmd = None,
 				entry = self._get_entry(obj)
 				if entry["cancelled"]:
 					self._logger.info("Hit a cancelled object, %s" % obj)
 					self.skipping = True
+					if len(self.beforegcode) > 0:
+						return self.beforegcode
 				else:
 					if self.skipping:
 						#Do any post skip injection here
+						if len(self.aftergcode) > 0:
+							cmd = self.aftergcode
 						self.skipping = False
 					self.active_object = entry["object"]
 					self._updatedisplay()
