@@ -70,8 +70,6 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 			self._logger.info("No aftergcode defined")
 		
 	def get_assets(self):
-		# Define your plugin's asset files to automatically include in the
-		# core UI here.
 		return dict(
 			js=["js/cancelobject.js"]
 		)
@@ -109,16 +107,12 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 
 	def on_api_command(self, command, data):
 		import flask
-		if command == "skip":
-			self._logger.info("skip current object called")
-			self.skip_to_next()
-			
-		elif command == "cancel":
+
+		if command == "cancel":
 			if current_user.is_anonymous():
 				return "Insufficient rights", 403
 				
 			cancelled = data["cancelled"]
-			#self._logger.info("cancel object called, cancelled is {cancelled}".format(**data))
 			self._cancel_object(cancelled)
 
 	def on_api_get(self, request):
@@ -198,8 +192,8 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		self._logger.info("Object %s cancelled" % cancelled)
 		obj = self._get_entry(cancelled)
 		obj["cancelled"] = True
-		#self._logger.info("Active object is %s, cancelled is %s" % (self.active_object, obj["object"]))
 		if obj["object"] == self.active_object:
+			#TODO: Removing this for now. Maybe hit a race condition in the queue?
 			#if self._settings.get_boolean(["pause"]) == True:
 			#	self._printer.pause_print()
 			self.skipping = True
@@ -230,9 +224,6 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 			return cmd
 			
 	def get_update_information(self):
-		# Define the configuration for your plugin to use with the Software Update
-		# Plugin here. See https://github.com/foosel/OctoPrint/wiki/Plugin:-Software-Update
-		# for details.
 		return dict(
 			cancelobject=dict(
 				displayName="Cancel object",
@@ -249,9 +240,6 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 			)
 		)
 		
-# If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
-# ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
-# can be overwritten via __plugin_xyz__ control properties. See the documentation for that.
 __plugin_name__ = "Cancel Objects"
 
 def __plugin_load__():
@@ -261,5 +249,6 @@ def __plugin_load__():
 	global __plugin_hooks__
 	__plugin_hooks__ = {	
 		"octoprint.filemanager.preprocessor": __plugin_implementation__.modify_file,
-		"octoprint.comm.protocol.gcode.queuing": __plugin_implementation__.check_queue
+		"octoprint.comm.protocol.gcode.queuing": __plugin_implementation__.check_queue,
+		"octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information
 	}

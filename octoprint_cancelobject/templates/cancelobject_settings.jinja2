@@ -1,5 +1,6 @@
 <form class="form-horizontal">
     <div class="control-group">
+    	<h4>PLEASE NOTE: This currently only works with Simplify3D processes.</h4>
         <h3>Regular Expressions</h3>
         <p>
         <label class="control-label">{{ _('Object Regular Expression') }}</label>
@@ -34,10 +35,12 @@
         	<input type="checkbox" data-bind="checked: settings.plugins.cancelobject.shownav">
         </div>
         <br>
+        <!--
         <label class="control-label">{{ _('Pause on cancel') }}</label>
         <div class="controls">
         	<i class="icon icon-info-sign" title="Issue an octoprint pause if the active object is cancelled" data-toggle="tooltip"></i>
         	<input type="checkbox" data-bind="checked: settings.plugins.cancelobject.pause">
         </div>
+        -->
     </div>
 </form>
