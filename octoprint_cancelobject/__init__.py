@@ -49,6 +49,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		self.active_object = None
 		self.object_regex = None
 		self.reptag = None
+		self.ignored = []
 		self.beforegcode = []
 		self.aftergcode = []
 		
@@ -68,6 +69,12 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 			self.aftergcode = filter(None, self.aftergcode)
 		except:
 			self._logger.info("No aftergcode defined")
+		try:
+			self.ignored = self._settings.get(["ignored"]).split(",")
+			#Remove any whitespace entries to avoid sending empty lines
+			self.ignored = filter(None, self.ignored)
+		except:
+			self._logger.info("No ignored objects defined")			
 		
 	def get_assets(self):
 		return dict(
@@ -77,6 +84,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 	def get_settings_defaults(self):
 		return dict(object_regex="; process (.*)",
 					reptag = "#Object",
+					ignored = "ENDGCODE,STARTGCODE",
 					beforegcode = None,
 					aftergocde = None,
 					shownav = True,
@@ -121,6 +129,10 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		
 	def _updateobjects(self):
 		if len(self.object_list) > 0:
+			#update ignore flag based on settings list
+			for each in self.object_list:
+				if each["object"] in self.ignored:
+					each["ignore"] = True
 			self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
 
 	def _updatedisplay(self):
@@ -148,8 +160,9 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 					except (ValueError, RuntimeError):
 						print("Error")
 			#Send objects to server
-			self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
-
+			#self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
+			self._updateobjects()
+			
 		elif event in (Events.PRINT_DONE, Events.PRINT_FAILED, Events.PRINT_CANCELLED):
 			self.object_list = []
 			self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
@@ -165,7 +178,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 				if entry:
 					return None
 				else:
-					return dict({"object" : obj, "id" : None, "active" : False, "cancelled" : False})
+					return dict({"object" : obj, "id" : None, "active" : False, "cancelled" : False, "ignore" : False})
 			else:
 				return None
 		

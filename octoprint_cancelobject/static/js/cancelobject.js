@@ -37,6 +37,8 @@ $(function() {
         	if (self.ObjectList.length > 0) {
         		var columnCount = self.ObjectList[0].length;
         		for (var i = 0; i < self.ObjectList.length; i++) {
+        			//Ignore entries that are just there for functional purposes
+        			if (self.ObjectList[i]["ignore"]) { continue; }
         			var row = table.insertRow(-1);
         			var cell1 = row.insertCell(-1);
         			cell1.innerHTML = self.ObjectList[i]["object"];
