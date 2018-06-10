@@ -75,7 +75,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		)
 		
 	def get_settings_defaults(self):
-		return dict(object_regex="; process (.*)",
+		return dict(object_regex="; process (.*)\s",
 					reptag = "#Object",
 					beforegcode = None,
 					aftergocde = None,
