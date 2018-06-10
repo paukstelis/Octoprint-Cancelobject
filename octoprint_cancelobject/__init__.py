@@ -121,6 +121,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		
 	def _updateobjects(self):
 		if len(self.object_list) > 0:
+			self._logger.info("{0}".format(self.object_list))
 			self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
 
 	def _updatedisplay(self):
@@ -148,8 +149,9 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 					except (ValueError, RuntimeError):
 						print("Error")
 			#Send objects to server
-			self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
-
+			#self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
+			self._updateobjects()
+			
 		elif event in (Events.PRINT_DONE, Events.PRINT_FAILED, Events.PRINT_CANCELLED):
 			self.object_list = []
 			self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
@@ -173,12 +175,14 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		matched = self.reptagregex.match(line)
 		if matched:
 			obj = matched.group(1)
+			print obj
 			return obj
 		return None
 
 	def _get_entry(self, name):
 		for o in self.object_list:
 			if o["object"] == name:
+				print o
 				return o
 		return None
 	
