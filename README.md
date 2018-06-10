@@ -18,3 +18,5 @@ Gcode (comma delimited) can be injected before or after the server reaches a can
 This may be need for retractions or resetting extrusion distance in some cases.
 Simplify3D resets extrusion distances between processes if the 'Allow zeroing of extrusion distance' setting is set,
 which is a necessary behaviour for this to work correctly.
+
+It is recommended to add `; process ENDGCODE` at the start of your Ending Script in S3D. Otherwise, ff the last object that would be printed has been cancelled this will result in the rest of the ending script being ignored. 
