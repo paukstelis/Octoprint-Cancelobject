@@ -55,7 +55,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 	def initialize(self):
 		self.object_regex = self._settings.get(["object_regex"])
 		self.reptag = self._settings.get(["reptag"])
-		self.reptagregex = re.compile("{0} (.*)".format(self.reptag))
+		self.reptagregex = re.compile("{0} (\S*)".format(self.reptag))
 		try:
 			self.beforegcode = self._settings.get(["beforegcode"]).split(",")
 			#Remove any whitespace entries to avoid sending empty lines
@@ -75,7 +75,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		)
 		
 	def get_settings_defaults(self):
-		return dict(object_regex="; process (.*)\s",
+		return dict(object_regex="; process (\S*)",
 					reptag = "#Object",
 					beforegcode = None,
 					aftergocde = None,
