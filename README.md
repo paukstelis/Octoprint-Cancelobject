@@ -14,9 +14,10 @@ or manually using this URL:
 
 ## Configuration
 ### Settings
-* Be default, active object (current object being queued) is displayed in the NavBar.
+* By default, active object (current object being queued) is displayed in the NavBar.
 * Gcode (comma delimited) can be injected before or after the server reaches a cancelled object.
   This may be need for retractions or resetting extrusion distance in some cases.
+* Gcode blocks that contain just functional information, like beginning or ending scripts, can be prevented from appearing in the tab by including them in a comma delimited list in the Ignored Object section. Defaults to `STARTGCODE,ENDGCODE`
 ### Simplify3D
 * Create one process for each object or group of models you want to be able to cancel. Assign models to processes.
 * Enable 'Allow zeroing of extrusion distance' setting in Gcode Tab.
