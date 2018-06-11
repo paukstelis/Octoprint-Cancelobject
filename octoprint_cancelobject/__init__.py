@@ -52,6 +52,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		self.ignored = []
 		self.beforegcode = []
 		self.aftergcode = []
+		self.allowed = []
 		
 	def initialize(self):
 		self.object_regex = self._settings.get(["object_regex"])
@@ -74,7 +75,13 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 			#Remove any whitespace entries to avoid sending empty lines
 			self.ignored = filter(None, self.ignored)
 		except:
-			self._logger.info("No ignored objects defined")			
+			self._logger.info("No ignored objects defined")
+		try:
+			self.allowed = self._settings.get(["allowed"]).split(",")
+			#Remove any whitespace entries to avoid sending empty lines
+			self.allowed = filter(None, self.allowed)
+		except:
+			self._logger.info("No allowed GCODE defined")
 		
 	def get_assets(self):
 		return dict(
@@ -87,6 +94,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 					ignored = "ENDGCODE,STARTGCODE",
 					beforegcode = None,
 					aftergocde = None,
+					allowed = "G1 Z,M104,M109,M140,M190,M204,M205"
 					shownav = True,
 					pause = False)
 
@@ -210,13 +218,22 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 			#if self._settings.get_boolean(["pause"]) == True:
 			#	self._printer.pause_print()
 			self.skipping = True
-				  
+	
+	def _skip_allow(self,cmd):
+		for allow in self.allowed:
+			if cmd.startswith(allow):
+				return cmd
+		return None,
+		
 	def check_queue(self, comm_instance, phase, cmd, cmd_type, gcode, tags, *args, **kwargs):
 		if cmd.startswith(self.reptag[0]):
 			obj = self._check_object(cmd)
 			if obj:
 				cmd = None,
 				entry = self._get_entry(obj)
+				if not entry:
+					print "ERROR WITH ENTRY"
+					return cmd
 				if entry["cancelled"]:
 					self._logger.info("Hit a cancelled object, %s" % obj)
 					self.skipping = True
@@ -232,9 +249,10 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 					self._updatedisplay()
 								
 		if self.skipping:
-			return None,
-		else:
-			return cmd
+			#check to see if cmd starts with something we should let through
+			cmd = self._skip_allow(cmd)
+
+		return cmd
 			
 	def get_update_information(self):
 		return dict(
