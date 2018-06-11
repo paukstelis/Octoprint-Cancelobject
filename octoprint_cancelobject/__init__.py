@@ -222,6 +222,8 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 	def _skip_allow(self,cmd):
 		for allow in self.allowed:
 			if cmd.startswith(allow):
+				print "COMMAND ALLOWED"
+				print cmd
 				return cmd
 		return None,
 		
@@ -229,11 +231,10 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		if cmd.startswith(self.reptag[0]):
 			obj = self._check_object(cmd)
 			if obj:
-				cmd = None,
 				entry = self._get_entry(obj)
 				if not entry:
 					print "ERROR WITH ENTRY"
-					return cmd
+					return None,
 				if entry["cancelled"]:
 					self._logger.info("Hit a cancelled object, %s" % obj)
 					self.skipping = True
@@ -244,6 +245,8 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 						#Do any post skip injection here
 						if len(self.aftergcode) > 0:
 							cmd = self.aftergcode
+						else:
+							cmd = None,
 						self.skipping = False
 					self.active_object = entry["object"]
 					self._updatedisplay()
