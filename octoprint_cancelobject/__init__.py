@@ -78,7 +78,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 			self._logger.info("No ignored objects defined")
 		try:
 			self.allowed = self._settings.get(["allowed"]).split(",")
-			#Remove any whitespace entries to avoid sending empty lines
+			#Remove any whitespace entries
 			self.allowed = filter(None, self.allowed)
 		except:
 			self._logger.info("No allowed GCODE defined")
@@ -94,9 +94,9 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 					ignored = "ENDGCODE,STARTGCODE",
 					beforegcode = None,
 					aftergocde = None,
-					allowed = "G1 Z,M104,M109,M140,M190,M204,M205",
-					shownav = True,
-					pause = False)
+					allowed = None,
+					shownav = True
+					)
 
 	def get_template_configs(self):
 		return [
@@ -130,28 +130,16 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 				
 			cancelled = data["cancelled"]
 			self._cancel_object(cancelled)
-
+			
+	#Is this really needed?
 	def on_api_get(self, request):
 		self._updateobjects()
 		self._updatedisplay()
-		
-	def _updateobjects(self):
-		if len(self.object_list) > 0:
-			#update ignore flag based on settings list
-			for each in self.object_list:
-				if each["object"] in self.ignored:
-					each["ignore"] = True
-			self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
 
-	def _updatedisplay(self):
-		navmessage = ""
-		
-		if self.active_object:
-			navmessage=str(self.active_object)
-		
-		if self._settings.get(['shownav']):
-			self._plugin_manager.send_plugin_message(self._identifier, dict(navBarActive=navmessage))
-		
+	def on_settings_save(self, data):
+		octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+		self.initialize()
+			
 	def on_event(self, event, payload):
 		if event in (Events.FILE_SELECTED, Events.PRINT_STARTED):
 			self.object_list = []
@@ -189,7 +177,24 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 					return dict({"object" : obj, "id" : None, "active" : False, "cancelled" : False, "ignore" : False})
 			else:
 				return None
+				
+	def _updateobjects(self):
+		if len(self.object_list) > 0:
+			#update ignore flag based on settings list
+			for each in self.object_list:
+				if each["object"] in self.ignored:
+					each["ignore"] = True
+			self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
+
+	def _updatedisplay(self):
+		navmessage = ""
 		
+		if self.active_object:
+			navmessage=str(self.active_object)
+		
+		if self._settings.get(['shownav']):
+			self._plugin_manager.send_plugin_message(self._identifier, dict(navBarActive=navmessage))
+
 	def _check_object(self, line):
 		matched = self.reptagregex.match(line)
 		if matched:
@@ -214,16 +219,11 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		obj = self._get_entry(cancelled)
 		obj["cancelled"] = True
 		if obj["object"] == self.active_object:
-			#TODO: Removing this for now. Maybe hit a race condition in the queue?
-			#if self._settings.get_boolean(["pause"]) == True:
-			#	self._printer.pause_print()
 			self.skipping = True
 	
 	def _skip_allow(self,cmd):
 		for allow in self.allowed:
 			if cmd.startswith(allow):
-				print "COMMAND ALLOWED"
-				print cmd
 				return cmd
 		return None,
 		
@@ -252,8 +252,11 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 					self._updatedisplay()
 								
 		if self.skipping:
-			#check to see if cmd starts with something we should let through
-			cmd = self._skip_allow(cmd)
+			if len(self.allowed) > 0:
+				#check to see if cmd starts with something we should let through
+				cmd = self._skip_allow(cmd)
+			else:
+				cmd = None,
 
 		return cmd
 			
