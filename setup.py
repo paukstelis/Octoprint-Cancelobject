@@ -14,17 +14,17 @@ plugin_package = "octoprint_cancelobject"
 plugin_name = "OctoPrint-Cancelobject"
 
 # The plugin's version. Can be overwritten within OctoPrint's internal data via __plugin_version__ in the plugin module
-plugin_version = "0.1.0"
+plugin_version = "0.1.1"
 
 # The plugin's description. Can be overwritten within OctoPrint's internal data via __plugin_description__ in the plugin
 # module
 plugin_description = """TODO"""
 
 # The plugin's author. Can be overwritten within OctoPrint's internal data via __plugin_author__ in the plugin module
-plugin_author = "You"
+plugin_author = "Paul Paukstelis"
 
 # The plugin's author's mail address.
-plugin_author_email = "you@example.com"
+plugin_author_email = "shocksofmighty@gmail.com"
 
 # The plugin's homepage URL. Can be overwritten within OctoPrint's internal data via __plugin_url__ in the plugin module
 plugin_url = "https://github.com/you/OctoPrint-Cancelobject"

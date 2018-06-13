@@ -52,6 +52,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		self.ignored = []
 		self.beforegcode = []
 		self.aftergcode = []
+		self.allowed = []
 		
 	def initialize(self):
 		self.object_regex = self._settings.get(["object_regex"])
@@ -74,7 +75,13 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 			#Remove any whitespace entries to avoid sending empty lines
 			self.ignored = filter(None, self.ignored)
 		except:
-			self._logger.info("No ignored objects defined")			
+			self._logger.info("No ignored objects defined")
+		try:
+			self.allowed = self._settings.get(["allowed"]).split(",")
+			#Remove any whitespace entries
+			self.allowed = filter(None, self.allowed)
+		except:
+			self._logger.info("No allowed GCODE defined")
 		
 	def get_assets(self):
 		return dict(
@@ -87,8 +94,9 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 					ignored = "ENDGCODE,STARTGCODE",
 					beforegcode = None,
 					aftergocde = None,
-					shownav = True,
-					pause = False)
+					allowed = None,
+					shownav = True
+					)
 
 	def get_template_configs(self):
 		return [
@@ -122,28 +130,16 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 				
 			cancelled = data["cancelled"]
 			self._cancel_object(cancelled)
-
+			
+	#Is this really needed?
 	def on_api_get(self, request):
 		self._updateobjects()
 		self._updatedisplay()
-		
-	def _updateobjects(self):
-		if len(self.object_list) > 0:
-			#update ignore flag based on settings list
-			for each in self.object_list:
-				if each["object"] in self.ignored:
-					each["ignore"] = True
-			self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
 
-	def _updatedisplay(self):
-		navmessage = ""
-		
-		if self.active_object:
-			navmessage=str(self.active_object)
-		
-		if self._settings.get(['shownav']):
-			self._plugin_manager.send_plugin_message(self._identifier, dict(navBarActive=navmessage))
-		
+	def on_settings_save(self, data):
+		octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+		self.initialize()
+			
 	def on_event(self, event, payload):
 		if event in (Events.FILE_SELECTED, Events.PRINT_STARTED):
 			self.object_list = []
@@ -181,7 +177,24 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 					return dict({"object" : obj, "id" : None, "active" : False, "cancelled" : False, "ignore" : False})
 			else:
 				return None
+				
+	def _updateobjects(self):
+		if len(self.object_list) > 0:
+			#update ignore flag based on settings list
+			for each in self.object_list:
+				if each["object"] in self.ignored:
+					each["ignore"] = True
+			self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
+
+	def _updatedisplay(self):
+		navmessage = ""
 		
+		if self.active_object:
+			navmessage=str(self.active_object)
+		
+		if self._settings.get(['shownav']):
+			self._plugin_manager.send_plugin_message(self._identifier, dict(navBarActive=navmessage))
+
 	def _check_object(self, line):
 		matched = self.reptagregex.match(line)
 		if matched:
@@ -206,17 +219,22 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		obj = self._get_entry(cancelled)
 		obj["cancelled"] = True
 		if obj["object"] == self.active_object:
-			#TODO: Removing this for now. Maybe hit a race condition in the queue?
-			#if self._settings.get_boolean(["pause"]) == True:
-			#	self._printer.pause_print()
 			self.skipping = True
-				  
+	
+	def _skip_allow(self,cmd):
+		for allow in self.allowed:
+			if cmd.startswith(allow):
+				return cmd
+		return None,
+		
 	def check_queue(self, comm_instance, phase, cmd, cmd_type, gcode, tags, *args, **kwargs):
 		if cmd.startswith(self.reptag[0]):
 			obj = self._check_object(cmd)
 			if obj:
-				cmd = None,
 				entry = self._get_entry(obj)
+				if not entry:
+					print "ERROR WITH ENTRY"
+					return None,
 				if entry["cancelled"]:
 					self._logger.info("Hit a cancelled object, %s" % obj)
 					self.skipping = True
@@ -227,14 +245,20 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 						#Do any post skip injection here
 						if len(self.aftergcode) > 0:
 							cmd = self.aftergcode
+						else:
+							cmd = None,
 						self.skipping = False
 					self.active_object = entry["object"]
 					self._updatedisplay()
 								
 		if self.skipping:
-			return None,
-		else:
-			return cmd
+			if len(self.allowed) > 0:
+				#check to see if cmd starts with something we should let through
+				cmd = self._skip_allow(cmd)
+			else:
+				cmd = None,
+
+		return cmd
 			
 	def get_update_information(self):
 		return dict(
