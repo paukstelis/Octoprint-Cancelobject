@@ -94,7 +94,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 					ignored = "ENDGCODE,STARTGCODE",
 					beforegcode = None,
 					aftergocde = None,
-					allowed = None,
+					allowed = "",
 					shownav = True
 					)
 
