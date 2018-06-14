@@ -18,7 +18,7 @@ plugin_version = "0.1.1"
 
 # The plugin's description. Can be overwritten within OctoPrint's internal data via __plugin_description__ in the plugin
 # module
-plugin_description = """TODO"""
+plugin_description = """Cancellation of single objects based on gcode comments"""
 
 # The plugin's author. Can be overwritten within OctoPrint's internal data via __plugin_author__ in the plugin module
 plugin_author = "Paul Paukstelis"
@@ -27,7 +27,7 @@ plugin_author = "Paul Paukstelis"
 plugin_author_email = "shocksofmighty@gmail.com"
 
 # The plugin's homepage URL. Can be overwritten within OctoPrint's internal data via __plugin_url__ in the plugin module
-plugin_url = "https://github.com/you/OctoPrint-Cancelobject"
+plugin_url = "https://github.com/paukstelis/OctoPrint-Cancelobject"
 
 # The plugin's license. Can be overwritten within OctoPrint's internal data via __plugin_license__ in the plugin module
 plugin_license = "AGPLv3"
