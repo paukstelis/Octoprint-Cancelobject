@@ -240,6 +240,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 					self.skipping = True
 					if len(self.beforegcode) > 0:
 						return self.beforegcode
+				#The next uncancelled entry
 				else:
 					if self.skipping:
 						#Do any post skip injection here
@@ -248,6 +249,8 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 						else:
 							cmd = None,
 						self.skipping = False
+					else:
+						cmd = None,
 					self.active_object = entry["object"]
 					self._updatedisplay()
 								
