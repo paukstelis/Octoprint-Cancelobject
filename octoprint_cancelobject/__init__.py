@@ -45,10 +45,12 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 
 	def __init__(self):		
 		self.object_list = []
+		self.currentE = 0
 		self.skipping = False
 		self.active_object = None
 		self.object_regex = None
 		self.reptag = None
+		self.trackE = True
 		self.ignored = []
 		self.beforegcode = []
 		self.aftergcode = []
@@ -58,6 +60,9 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		self.object_regex = self._settings.get(["object_regex"])
 		self.reptag = self._settings.get(["reptag"])
 		self.reptagregex = re.compile("{0} ([^\t\n\r\f\v]*)".format(self.reptag))
+		#We should only have to track extrusion moves? What about retracts? Maybe need G0's too?
+		#TODO: Compile examples from various slicers to check
+		self.trackregex = re.compile("G1 X\d*\.\d+ Y\d*\.\d+ E(\d*\.\d+)")
 		try:
 			self.beforegcode = self._settings.get(["beforegcode"]).split(",")
 			#Remove any whitespace entries to avoid sending empty lines
@@ -82,7 +87,8 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 			self.allowed = filter(None, self.allowed)
 		except:
 			self._logger.info("No allowed GCODE defined")
-		
+
+			
 	def get_assets(self):
 		return dict(
 			js=["js/cancelobject.js"]
@@ -161,6 +167,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 			
 		elif event in (Events.PRINT_DONE, Events.PRINT_FAILED, Events.PRINT_CANCELLED):
 			self.object_list = []
+			self.currentE = 0
 			self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
 			self.active_object = 'None'
 			self._plugin_manager.send_plugin_message(self._identifier, dict(navBarActive=self.active_object))		
@@ -248,11 +255,19 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 				#The next uncancelled entry
 				else:
 					if self.skipping:
+						#How to handle post skip injection and trackE? A bit messy, but just append
 						#Do any post skip injection here
 						if len(self.aftergcode) > 0:
 							cmd = self.aftergcode
+							if self.trackE:
+								cmd.append("G92 E{0}".format(self.currentE))
+						#Remove marker from queue
 						else:
 							cmd = None,
+						#Set current extruder position if we are tracking E
+						if self.trackE:
+							cmd = ("G92 E{0}".format(self.currentE))
+							#print self.currentE
 						self.skipping = False
 					else:
 						cmd = None,
@@ -260,11 +275,18 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 					self._updatedisplay()
 								
 		if self.skipping:
+			#update E position if it is an extruder move, this is going to slow stuff down...	
+			if self.trackE:
+				matched = self.trackregex.match(cmd)
+				if matched:
+					self.currentE = matched.group(1)
 			if len(self.allowed) > 0:
 				#check to see if cmd starts with something we should let through
 				cmd = self._skip_allow(cmd)
 			else:
 				cmd = None,
+
+				
 
 		return cmd
 			
