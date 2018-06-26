@@ -50,7 +50,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		self.active_object = None
 		self.object_regex = None
 		self.reptag = None
-		self.trackE = True
+		self.trackE = False
 		self.ignored = []
 		self.beforegcode = []
 		self.aftergcode = []
@@ -63,6 +63,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		#We should only have to track extrusion moves? What about retracts? Maybe need G0's too?
 		#TODO: Compile examples from various slicers to check
 		self.trackregex = re.compile("G1 X\d*\.\d+ Y\d*\.\d+ E(\d*\.\d+)")
+		self.trackE = self._settings.get(["trackE")
 		try:
 			self.beforegcode = self._settings.get(["beforegcode"]).split(",")
 			#Remove any whitespace entries to avoid sending empty lines
@@ -101,7 +102,8 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 					beforegcode = None,
 					aftergocde = None,
 					allowed = "",
-					shownav = True
+					shownav = True,
+					trackE = False
 					)
 
 	def get_template_configs(self):
