@@ -31,38 +31,96 @@ $(function() {
 			});	
         }
         
+        self.toggleFeature = function(entry,name) {
+        	$.ajax({
+				url: API_BASEURL + "plugin/cancelobject",
+				type: "POST",
+				dataType: "json",
+				data: JSON.stringify({
+					command: "toggle",
+					entryid: entry,
+					feature: name 
+				}),
+				contentType: "application/json; charset=UTF-8"
+			});	
+        }
+
         self.updateObjectList = function() {
-        	//start a new table
-        	var table = document.createElement("table");
+        	//start a new entry, don't yet know if this is something that can be done with jinja2
+        	var divContainer = document.getElementById("cancel-table");
         	if (self.ObjectList.length > 0) {
-        		var columnCount = self.ObjectList[0].length;
         		for (var i = 0; i < self.ObjectList.length; i++) {
         			//Ignore entries that are just there for functional purposes
         			if (self.ObjectList[i]["ignore"]) { continue; }
-        			var row = table.insertRow(-1);
-        			var cell1 = row.insertCell(-1);
-        			cell1.innerHTML = self.ObjectList[i]["object"];
-        			var cell2 = row.insertCell(-1);
-        			//Can't seem to figure out how to have disabled = false and keep it active, so doing this
-        			if (self.ObjectList[i]["cancelled"]) {
-        				cell2.innerHTML = '<button class="cancel-btn" disabled="disabled" value="'+cell1.innerHTML+'">Cancel</button>';	
+        			
+        			var entry = document.createElement("div"); entry.className = "something2";
+        			entry.id = "entry"+i;
+        			
+        			var objname = document.createElement("label"); objname.className = "something3";
+        			objname.appendChild(document.createTextNode(self.ObjectList[i]["object"]));
+        			//objname.innerHTML = "<h3>"+self.ObjectList[i]["object"]+"</h3>";
+        			entry.appendChild(objname);
+        			
+        			var features = document.createElement("div"); features.className = "accordion-group featurediv";
+        			var featureheading = document.createElement("div"); featureheading.className = "accordion-heading";
+        			features.appendChild(featureheading);
+        			
+        			var firstspan = document.createElement("anchor");
+        			firstspan.className = "accordion-toggle ";
+        			firstspan.dataset.toggle = "collapse";
+        			firstspan.dataset.target = "#"+self.ObjectList[i]["object"]+"features";
+        			firstspan.innerHTML = "Toggle Feature";
+        			featureheading.appendChild(firstspan);
+        			
+        			var featurebody = document.createElement("div"); featurebody.className = "accordion-body collapse";
+        			featurebody.id = self.ObjectList[i]["object"]+"features";
+        			var list = document.createElement('ul');
+        			list.className = "items";
+        			
+        			for (var k = 0; k < self.ObjectList[i]["features"].length; k++) {
+        				var feature = document.createElement("li"); feature.className = "feature";
+        				
+        				var checkbox = document.createElement("input");
+        				checkbox.className = "featurecheck";
+        				checkbox.type = "checkbox";
+        				checkbox.name = self.ObjectList[i]["features"][k]["name"];
+        				checkbox.checked = true;
+        				checkbox.id = i+self.ObjectList[i]["features"][k]["name"];
+        				checkbox.setAttribute('entryid', i);
+        				
+        				if (self.ObjectList[i]["features"][k]["cancel"]) { checkbox.checked = false; }
+        				var label = document.createElement("label"); label.className = "feature";
+        				label.htmlFor = i+self.ObjectList[i]["features"][k]["name"];
+        				label.appendChild(document.createTextNode(self.ObjectList[i]["features"][k]["name"]));
+        				label.innerHTML += "<p>";
+        				
+        				feature.appendChild(checkbox);
+        				feature.appendChild(label);
+        				list.appendChild(feature);
+        				featurebody.append(list);
+        				
+        				//features.innerHTML += "<p>";
         			}
-        			else {
-        				cell2.innerHTML = '<button class="cancel-btn" value="'+cell1.innerHTML+'">Cancel</button>';
-        			}
+        			features.appendChild(featurebody);
+        			
+        			var cancelbutton = document.createElement("BUTTON"); cancelbutton.className = "cancelbutton btn";
+        			cancelbutton.value = i;
+        			cancelbutton.innerHTML = "Cancel";
+        			if (self.ObjectList[i]["cancelled"]) { cancelbutton.disabled = true; }
+        			entry.appendChild(cancelbutton);
+        			
+        			entry.appendChild(features);
+        			divContainer.appendChild(entry);
         		}
+        			
         	}
-        	
-        	var divContainer = document.getElementById("cancel-table");
-        	divContainer.innerHTML = "";
-        	divContainer.appendChild(table);
+
         }
-        
+
         //Seems I can only bind this to document?
-        $(document.body).on("click", ".cancel-btn", function (event) {
+        $(document.body).on("click", ".cancelbutton", function (event) {
             console.log($(this).attr("value"));
             var thebutton = $(this);
-            var theobject = $(this).attr("value");
             showConfirmationDialog({
                         title: gettext("Are you sure?"),
                         message: gettext("<p><strong>You are about to cancel this object.</strong>"),
@@ -76,6 +134,15 @@ $(function() {
               });
     	});
     	
+    	$(document.body).on("change",".featurecheck", function (event) {
+
+			var thebox = $(this);
+			var thename = $(this).attr("name");
+			var theentry = $(this).attr("entryid");
+			
+			self.toggleFeature(theentry,thename);
+			
+        });
         self.onDataUpdaterPluginMessage = function (plugin, data) {          
         	if (data.navBarActive){
                 self.navBarActive('Current Object: '+data.navBarActive);

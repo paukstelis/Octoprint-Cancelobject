@@ -1,1 +1,50 @@
+.cancelbutton {
+	display : block;
+	position: relative;
+	bottom: 0;
+	left: 0;
+}
+
+.cancel-tab {
+
+}
+
+.something2 {
+
+	display: block;
+	position: relative;
+	padding: 2px;
+	width: 100%
+    overflow: auto;
+}
+
+.something3 {
+
+	font-size: 150%;
+	
+}
+
+.items {
+	display: block;
+}
+
+.featurediv {
+
+}
+
+label.feature {
+  display: inline;
+}
+
+.feature {
+	display: inline;	
+}
+
+div.cancel-tab > div:nth-of-type(odd) {
+    background: #e0e0e0;
+}
+
+div.cancel-tab > div:nth-of-type(even) {
+    background: #E4F0EF;
+}
 
