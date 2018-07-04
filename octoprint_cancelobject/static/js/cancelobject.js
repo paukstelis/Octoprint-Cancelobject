@@ -97,7 +97,7 @@ $(function() {
         				feature.appendChild(checkbox);
         				feature.appendChild(label);
         				list.appendChild(feature);
-        				featurebody.append(list);
+        				featurebody.appendChild(list);
         				
         				//features.innerHTML += "<p>";
         			}
