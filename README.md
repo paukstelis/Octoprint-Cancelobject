@@ -23,7 +23,14 @@ or manually using this URL:
 * Create one process for each object or group of models you want to be able to cancel. Assign models to processes.
 * Enable 'Allow zeroing of extrusion distance' setting in Gcode Tab.
 * It is recommended to add `; process ENDGCODE` at the start of your Ending Script in S3D. Otherwise, if the last object that would be printed has been cancelled this will result in the rest of the ending script being ignored.
-### Slic3r - sequential printing only
+### Slic3r - normal printing
+* Use the current development build snapshot: https://dl.slic3r.org/dev/
+* For Prusa Edition, see Windows build referenced here: https://github.com/prusa3d/Slic3r/issues/972
+* Enable `Label prints with object ID` in the Output section
+* Enable relative extrusion in printer settings (your printer must support this; most do)
+* Add `; printing object ENDGCODE` to the start of the end gcode in the Custom Gcode section.
+* Modify the plugins object regex to: `; printing object (.*)`
+### Slic3r - sequential printing
 * For the start custom GCODE, include at the end: `; process 0`
 * For the end custom GCODE, include at the start: `; process ENDGCODE`
 * For the between object custom GCODE, include: `; process [current_object_idx]`
