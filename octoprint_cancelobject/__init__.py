@@ -338,7 +338,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 				cmd = None,
 
 		if self.outerskip or self.innerskip:
-			if len(self.allowed) > 0:
+			if len(self.allowed) > 0 and cmd[0]:
 				#check to see if cmd starts with something we should let through
 				cmd = self._skip_allow(cmd)
 			else:
