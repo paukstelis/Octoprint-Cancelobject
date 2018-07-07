@@ -335,7 +335,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 					if f["name"] == feature and f["cancel"]:
 						self.innerskip = True
 						self._logger.info("Hit a cancelled feature for %s" % entry["object"])
-						cmd = None,
+				cmd = None,
 
 		if self.outerskip or self.innerskip:
 			if len(self.allowed) > 0:
