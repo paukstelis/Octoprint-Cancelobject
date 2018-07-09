@@ -12,6 +12,7 @@ $(function() {
         self.loginState = parameters[0];
         self.settings = parameters[1];
         self.navBarActive = ko.observable();
+        self.ActiveID = ko.observable();
         self.ObjectList = ko.observableArray();
 
         self.onBeforeBinding = function() {
@@ -30,34 +31,49 @@ $(function() {
 				contentType: "application/json; charset=UTF-8"
 			});	
         }
-        
+
         self.updateObjectList = function() {
-        	//start a new table
-        	var table = document.createElement("table");
+        	//start a new entry, don't yet know if this is something that can be done with jinja2
+        	var canceltable = document.getElementById("cancel-table");
+        	canceltable.innerHTML = "";
+        	var entries = document.createElement("div"); entries.className = "entries";
         	if (self.ObjectList.length > 0) {
-        		var columnCount = self.ObjectList[0].length;
         		for (var i = 0; i < self.ObjectList.length; i++) {
         			//Ignore entries that are just there for functional purposes
         			if (self.ObjectList[i]["ignore"]) { continue; }
-        			var row = table.insertRow(-1);
-        			var cell1 = row.insertCell(-1);
-        			cell1.innerHTML = self.ObjectList[i]["object"];
-        			var cell2 = row.insertCell(-1);
-        			//Can't seem to figure out how to have disabled = false and keep it active, so doing this
-        			if (self.ObjectList[i]["cancelled"]) {
-        				cell2.innerHTML = '<button class="cancel-btn" disabled="disabled" value="'+cell1.innerHTML+'">Cancel</button>';	
-        			}
-        			else {
-        				cell2.innerHTML = '<button class="cancel-btn" value="'+cell1.innerHTML+'">Cancel</button>';
-        			}
+        			
+        			var entry = document.createElement("div"); entry.className = "entry";
+        			entry.id = "entry"+self.ObjectList[i]["id"];
+        			entry.activeobj = "false";
+        			
+        			var objname = document.createElement("label"); objname.className = "entrylabel";
+        			objname.appendChild(document.createTextNode(self.ObjectList[i]["object"]));
+        			entry.appendChild(objname);
+        			
+        			var cancelbutton = document.createElement("BUTTON"); cancelbutton.className = "cancel-btn btn";
+        			cancelbutton.value = self.ObjectList[i]["id"];
+        			cancelbutton.innerHTML = "Cancel";
+        			if (self.ObjectList[i]["cancelled"]) { cancelbutton.disabled = true; }
+        			entry.appendChild(cancelbutton);
+        			entries.appendChild(entry);
         		}
         	}
+        	else { canceltable.innerHTML = "Object list populated when GCODE file is loaded"; }
         	
-        	var divContainer = document.getElementById("cancel-table");
-        	divContainer.innerHTML = "";
-        	divContainer.appendChild(table);
+        	canceltable.appendChild(entries);
+        
         }
         
+        self.updateActive = function() {
+        	
+        	var entries = $("div[id^='entry']");
+        	//console.log(entries);
+        	for (var i = 0; i < entries.length; i++) {
+        		entries[i].className = "entry";
+        	}
+        	var entry = document.getElementById("entry"+self.ActiveID);
+        	entry.className = "entry activeobject";
+        }
         //Seems I can only bind this to document?
         $(document.body).on("click", ".cancel-btn", function (event) {
             console.log($(this).attr("value"));
@@ -77,8 +93,13 @@ $(function() {
     	});
     	
         self.onDataUpdaterPluginMessage = function (plugin, data) {          
-        	if (data.navBarActive){
+        	if (data.navBarActive) {
                 self.navBarActive('Current Object: '+data.navBarActive);
+            }
+            
+            if (data.ActiveID >= 0) {
+            	self.ActiveID = data.ActiveID;
+            	self.updateActive();
             }
             //New list of objects
             if (data.objects){

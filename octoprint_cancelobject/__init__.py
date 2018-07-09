@@ -19,11 +19,10 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
 		self._object_regex = object_regex
 		self._reptag = reptag
 		self.pattern = re.compile(self._object_regex)
+		
 	def process_line(self, line):
-
 		if line.startswith(";"):
 			line = self._matchComment(line)
-
 		if not len(line):
 			return None
 		return line
@@ -58,6 +57,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		self.object_regex = self._settings.get(["object_regex"])
 		self.reptag = self._settings.get(["reptag"])
 		self.reptagregex = re.compile("{0} ([^\t\n\r\f\v]*)".format(self.reptag))
+		self.allowedregex = []
 		try:
 			self.beforegcode = self._settings.get(["beforegcode"]).split(",")
 			#Remove any whitespace entries to avoid sending empty lines
@@ -80,12 +80,16 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 			self.allowed = self._settings.get(["allowed"]).split(",")
 			#Remove any whitespace entries
 			self.allowed = filter(None, self.allowed)
+			for allow in self.allowed:
+				regex = re.compile(allow)
+				self.allowedregex.append(regex)
 		except:
 			self._logger.info("No allowed GCODE defined")
 		
 	def get_assets(self):
 		return dict(
-			js=["js/cancelobject.js"]
+			js=["js/cancelobject.js"],
+			css=["css/cancelobject.css"]
 		)
 		
 	def get_settings_defaults(self):
@@ -127,7 +131,6 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		if command == "cancel":
 			if current_user.is_anonymous():
 				return "Insufficient rights", 403
-				
 			cancelled = data["cancelled"]
 			self._cancel_object(cancelled)
 			
@@ -184,16 +187,17 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 			for each in self.object_list:
 				if each["object"] in self.ignored:
 					each["ignore"] = True
-			self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
+		self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
 
 	def _updatedisplay(self):
-		navmessage = ""
-		
+		navmessage = ""		
 		if self.active_object:
 			navmessage=str(self.active_object)
-		
+			obj = self._get_entry(self.active_object)
+			self._plugin_manager.send_plugin_message(self._identifier, dict(ActiveID=obj["id"]))
 		if self._settings.get(['shownav']):
 			self._plugin_manager.send_plugin_message(self._identifier, dict(navBarActive=navmessage))
+		
 
 	def _check_object(self, line):
 		matched = self.reptagregex.match(line)
@@ -210,21 +214,27 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 	
 	def _get_entry_byid(self, objid):
 		for o in self.object_list:
-			if o["id"] == objid:
+			if o["id"] == int(objid):
 				return o
 		return None
 		
-	def _cancel_object(self, cancelled):
-		self._logger.info("Object %s cancelled" % cancelled)
-		obj = self._get_entry(cancelled)
+	def _cancel_object(self, cancelled):		
+		obj = self._get_entry_byid(cancelled)
 		obj["cancelled"] = True
+		self._logger.info("Object {0} cancelled".format(obj["object"]))
 		if obj["object"] == self.active_object:
 			self.skipping = True
 	
 	def _skip_allow(self,cmd):
-		for allow in self.allowed:
-			if cmd.startswith(allow):
-				return cmd
+		for allow in self.allowedregex:
+			try:
+				match = allow.match(cmd)
+				if match:
+					self._logger.info("Allowing command: {0}".format(cmd))
+					return cmd
+			except:
+				print "Skip regex error"
+				
 		return None,
 		
 	def check_queue(self, comm_instance, phase, cmd, cmd_type, gcode, tags, *args, **kwargs):
@@ -236,7 +246,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 					print "ERROR WITH ENTRY"
 					return None,
 				if entry["cancelled"]:
-					self._logger.info("Hit a cancelled object, %s" % obj)
+					self._logger.info("Hit a cancelled object,{0}".format(obj))
 					self.skipping = True
 					if len(self.beforegcode) > 0:
 						return self.beforegcode

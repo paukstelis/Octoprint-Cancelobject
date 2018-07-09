@@ -1,1 +1,30 @@
+.entry {
+	display: inline-block;
+	padding: 5px;
+	width: 100%;
+	position: relative;
+}
 
+.entrylabel {
+	font-size: 150%;
+}
+
+.cancel-btn {
+	top: 2px;
+	right: 5px;
+	position: absolute;
+}
+
+.activeobject {
+	border-color: red;
+	border-width: 2px;
+	border-style: solid;
+}
+
+div.entries > div:nth-of-type(odd) {
+    background-color: #e0e0e0;
+}
+
+div.entries > div:nth-of-type(even) {
+    background-color: #E4F0EF;
+}
