@@ -162,7 +162,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 			#self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
 			self._updateobjects()
 			
-		elif event in (Events.PRINT_DONE, Events.PRINT_FAILED, Events.PRINT_CANCELLED):
+		elif event in (Events.PRINT_DONE, Events.PRINT_FAILED, Events.PRINT_CANCELLED, Events.FILE_DESELECTED):
 			self.object_list = []
 			self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
 			self.active_object = 'None'

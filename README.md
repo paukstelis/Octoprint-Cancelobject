@@ -1,8 +1,12 @@
 # OctoPrint-Cancelobject
 
 This plugin allows the user to interactively cancel objects in gcode based on comment tags added by the slicer.
-Currently, the only fully functional model is using Simplify3D and including a separate process for each object (or group of
-objects) that the user may want to cancel. Cancelling objects in a sequential print may also be possible using Slic3r Prusa Edition (see below).
+See below for instructions for specific slicers.
+
+### New version 0.1.2
+* Visual improvements in the plugin Tab.
+* Convert allowed GCODE section to regular expression for greater slicer compatibility.
+* Backend changes to allow for future feature-specific cancelling.
 
 ![screenshot](./cancelobject.png)
 ## Setup
