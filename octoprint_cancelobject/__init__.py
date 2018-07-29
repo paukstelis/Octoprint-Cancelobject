@@ -16,9 +16,11 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
 	
 	def __init__(self, fileBufferedReader, object_regex, reptag):
 		super(ModifyComments, self).__init__(fileBufferedReader)
-		self._object_regex = object_regex
-		self._reptag = reptag
-		self.pattern = re.compile(self._object_regex)
+		self.patterns = []
+		for each in object_regex:
+			regex = re.compile(each)
+			self.patterns.append(regex)
+		self._reptag = "@{0}".format(reptag)
 		
 	def process_line(self, line):
 		if line.startswith(";"):
@@ -28,11 +30,11 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
 		return line
 
 	def _matchComment(self, line):
-		
-		matched = self.pattern.match(line)
-		if matched:
-			obj = matched.group(1)
-			line = "{0} {1}\n".format(self._reptag, obj)
+		for pattern in self.patterns:
+			matched = pattern.match(line)
+			if matched:
+				obj = matched.group(1)
+				line = "{0} {1}\n".format(self._reptag, obj)
 		return line
 
 class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
@@ -45,6 +47,8 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 	def __init__(self):		
 		self.object_list = []
 		self.skipping = False
+		self.startskip = False
+		self.endskip = False 
 		self.active_object = None
 		self.object_regex = None
 		self.reptag = None
@@ -54,10 +58,16 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		self.allowed = []
 		
 	def initialize(self):
-		self.object_regex = self._settings.get(["object_regex"])
+		self.object_regex = []
 		self.reptag = self._settings.get(["reptag"])
-		self.reptagregex = re.compile("{0} ([^\t\n\r\f\v]*)".format(self.reptag))
+		self.reptagregex = re.compile("@{0} ([^\t\n\r\f\v]*)".format(self.reptag))
 		self.allowedregex = []
+		
+		try:
+			self.object_regex = self._settings.get(["object_regex"]).split(",")
+			self.object_regex = filter(None, self.object_regex)
+		except:
+			self._logger.critical("No object regex defined, plugin cannot work")			
 		try:
 			self.beforegcode = self._settings.get(["beforegcode"]).split(",")
 			#Remove any whitespace entries to avoid sending empty lines
@@ -94,7 +104,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 		
 	def get_settings_defaults(self):
 		return dict(object_regex="; process (.*)",
-					reptag = "#Object",
+					reptag = "Object",
 					ignored = "ENDGCODE,STARTGCODE",
 					beforegcode = None,
 					aftergocde = None,
@@ -110,12 +120,9 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 	def modify_file(self, path, file_object, blinks=None, printer_profile=None, allow_overwrite=True, *args,**kwargs):
 		if not octoprint.filemanager.valid_file_type(path, type="gcode"):
 			return file_object
-
 		import os
 		name, _ = os.path.splitext(file_object.filename)
-		obj_regex = self._settings.get(["object_regex"])
-		reptag = self._settings.get(["reptag"])
-		modfile = octoprint.filemanager.util.StreamWrapper(file_object.filename,ModifyComments(file_object.stream(),obj_regex,reptag))
+		modfile = octoprint.filemanager.util.StreamWrapper(file_object.filename,ModifyComments(file_object.stream(),self.object_regex,self.reptag))
 		
 		return modfile
 		
@@ -169,7 +176,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 			self._plugin_manager.send_plugin_message(self._identifier, dict(navBarActive=self.active_object))		
 			
 	def process_line(self, line):
-		if line.startswith(self.reptag[0]):
+		if line.startswith("@"):
 			obj = self._check_object(line)
 			if obj:
 			#maybe it is faster to put them all in a list and uniquify with a set?
@@ -236,34 +243,45 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 				print "Skip regex error"
 				
 		return None,
+
+	def check_atcommand(self, comm, phase, command, parameters, tags=None, *args, **kwargs):
+		#self._logger.info("Got command {0} with parameters {1}".format(command, parameters))
+		if command != self.reptag:
+			return
+		entry = self._get_entry(parameters)
+
+		if not entry:
+			self._logger.info("Could not get entry {0}".format(parameters))
+			return
+		if entry["cancelled"]:
+			self._logger.info("Hit a cancelled object,{0}".format(parameters))
+			self.skipping = True
+			self.startskip = True
+		else:
+			if self.skipping:
+				self.skipping = False
+				self.endskip = True
+			self.active_object = entry["object"]
 		
+		self._updatedisplay()
+			
 	def check_queue(self, comm_instance, phase, cmd, cmd_type, gcode, tags, *args, **kwargs):
-		if cmd.startswith(self.reptag[0]):
-			obj = self._check_object(cmd)
-			if obj:
-				entry = self._get_entry(obj)
-				if not entry:
-					print "ERROR WITH ENTRY"
-					return None,
-				if entry["cancelled"]:
-					self._logger.info("Hit a cancelled object,{0}".format(obj))
-					self.skipping = True
-					if len(self.beforegcode) > 0:
-						return self.beforegcode
-				#The next uncancelled entry
-				else:
-					if self.skipping:
-						#Do any post skip injection here
-						if len(self.aftergcode) > 0:
-							cmd = self.aftergcode
-						else:
-							cmd = None,
-						self.skipping = False
-					else:
-						cmd = None,
-					self.active_object = entry["object"]
-					self._updatedisplay()
-								
+		#Need this or @ commands get caught in skipping block
+		if self._check_object(cmd):
+			self.skipping = False
+			
+		if self.startskip and len(self.beforegcode) > 0:
+			cmd = self._skip_allow(cmd)
+			if cmd:
+				self.beforegcode.append(cmd)
+			self.startskip = False
+			return self.beforegcode
+		
+		if self.endskip and len(self.aftergcode) > 0:
+			self.aftergcode.append(cmd)
+			self.endskip = False
+			return self.aftergcode
+		
 		if self.skipping:
 			if len(self.allowed) > 0:
 				#check to see if cmd starts with something we should let through
@@ -299,6 +317,7 @@ def __plugin_load__():
 	global __plugin_hooks__
 	__plugin_hooks__ = {	
 		"octoprint.filemanager.preprocessor": __plugin_implementation__.modify_file,
-		"octoprint.comm.protocol.gcode.queuing": __plugin_implementation__.check_queue,
+		"octoprint.comm.protocol.atcommand.queuing": (__plugin_implementation__.check_atcommand,1),
+		"octoprint.comm.protocol.gcode.queuing": (__plugin_implementation__.check_queue,2),
 		"octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information
 	}
