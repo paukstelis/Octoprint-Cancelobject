@@ -2,23 +2,52 @@
  * View model for OctoPrint-Cancelobject
  *
  * Author: Paul Paukstelis
- * Notes: Don't laugh. My first ever attempt trying to understand javascript!
  * License: AGPLv3
  */
 $(function() {
     function CancelobjectViewModel(parameters) {
     	var PLUGIN_ID = "cancelobject";
         var self = this;
-        self.loginState = parameters[0];
-        self.settings = parameters[1];
+        
+        self.global_settings = parameters[0];
+        self.loginState = parameters[1];
+        
         self.navBarActive = ko.observable();
         self.ActiveID = ko.observable();
         self.ObjectList = ko.observableArray();
-
+        self.object_regex = ko.observableArray();
+        self.ignored = ko.observableArray();
+        self.beforegcode = ko.observableArray();
+        self.aftergcode = ko.observableArray();
+        self.allowed = ko.observableArray();
+        
         self.onBeforeBinding = function() {
             OctoPrint.get("api/plugin/"+PLUGIN_ID);
+            self.settings = self.global_settings.settings.plugins.cancelobject;
+            self.object_regex(self.settings.object_regex.slice(0));
+
+            self.ignored = self.settings.ignored;
+            self.beforegcode = self.settings.beforegcode;
+            self.aftergcode = self.settings.aftergcode;
+            self.allowed = self.settings.allowed;
+            self.shownav = self.settings.shownav;
         };
-        
+
+        self.addRegex = function() {
+            self.object_regex.push("");
+            console.log(self.object_regex.slice(0))
+        };
+
+        self.removeRegex = function(regex) {
+            self.object_regex.remove(regex)
+            console.log(self.object_regex.slice(0))
+        };
+
+        self.onSettingsBeforeSave = function () {
+
+            self.global_settings.settings.plugins.cancelobject.object_regex(self.object_regex.slice(0));
+        };
+
         self.cancelObject = function(obj) {
         	$.ajax({
 				url: API_BASEURL + "plugin/cancelobject",
@@ -33,6 +62,7 @@ $(function() {
         }
 
         self.updateObjectList = function() {
+        	
         	//start a new entry, don't yet know if this is something that can be done with jinja2
         	var canceltable = document.getElementById("cancel-table");
         	canceltable.innerHTML = "";
@@ -118,10 +148,10 @@ $(function() {
         // This is a list of dependencies to inject into the plugin, the order which you request
         // here is the order in which the dependencies will be injected into your view model upon
         // instantiation via the parameters argument
-        ["loginStateViewModel","settingsViewModel"],
+        ["settingsViewModel","loginStateViewModel"],
 
         // Finally, this is the list of selectors for all elements we want this view model to be bound to.
         
-        ["#navbar_plugin_cancelobject","#tab_plugin_cancelobject"]
+        ["#navbar_plugin_cancelobject","#tab_plugin_cancelobject","#settings_plugin_cancelobject"]
     ]);
 });

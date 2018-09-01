@@ -2,55 +2,56 @@
     <div class="control-group">
         <h3>Regular Expressions</h3>
         <p>
-        <label class="control-label">{{ _('Object Regular Expression') }}</label>
+        <label class="control-label">{{ _('Object Regular Expressions') }}</label>
         <div class="controls">
-        	<i class="icon icon-info-sign" title="Your slicer's object-specific comment line. Uses standard python regular expressions." data-toggle="tooltip"></i>
-            <input type="text" class="input-block-level" data-bind="value: settings.plugins.cancelobject.object_regex">     
+        	<i class="icon icon-info-sign" title="The slicers object-specific comment line. Uses standard python regular expressions." data-toggle="tooltip"></i>
+            <div data-bind="foreach: object_regex">
+            	<div class="row-fluid" style="margin-bottom: 5px">
+            		<div class="input-prepend control-group" title="">
+				        <input type="text" class="input-block-level text-left" data-bind="value: $data">
+				        <a title="Remove" class="btn btn-danger" data-bind="click: $parent.removeRegex"><i class="icon-trash"></i></a>
+				    </div>
+				</div>
+             </div>
+        </div>
+  	    <div class="row-fluid">
+            <div class="offset11 span1">
+                <a title="Add Regex" class="btn btn-primary" data-bind="click: addRegex"><i class="icon-plus"></i></a>
+            </div>
         </div>
         <br>
-        <label class="control-label">{{ _('Object Replacement Tag') }}</label>
-        <div class="controls">
-            <i class="icon icon-info-sign" title="Replacement tag for object comments, do not use semi-colon comments as these get stripped" data-toggle="tooltip"></i>
-            <input type="text" class="input-block-level" data-bind="value: settings.plugins.cancelobject.reptag">     
-        </div>
         <label class="control-label">{{ _('Ignored Object Names') }}</label>
         <div class="controls">
             <i class="icon icon-info-sign" title="Comma delimited list of object names that will not appear in the Cancel Objects Tab" data-toggle="tooltip"></i>
-            <input type="text" class="input-block-level" data-bind="value: settings.plugins.cancelobject.ignored">     
+            <input type="text" class="input-block-level" data-bind="value: ignored">     
         </div>
         <h3>GCODE</h3>
         <p>
         <label class="control-label">{{ _('Before skip GCODE') }}</label>
         <div class="controls">
         	<i class="icon icon-info-sign" title="Comma delimited list of GCODE commands to inject BEFORE skipping an object" data-toggle="tooltip"></i>
-            <input type="text" class="input-block-level" data-bind="value: settings.plugins.cancelobject.beforegcode">
+            <input type="text" class="input-block-level" data-bind="value: beforegcode">
         </div>
         <br>
         <label class="control-label">{{ _('After skip GCODE') }}</label>
         <div class="controls">
             <i class="icon icon-info-sign" title="Comma delimited list of GCODE commands to inject AFTER skipping an object, i.e. before next object" data-toggle="tooltip"></i>
-            <input type="text" class="input-block-level" data-bind="value: settings.plugins.cancelobject.aftergcode">
+            <input type="text" class="input-block-level" data-bind="value: aftergcode">
         </div>
         <br>
         <label class="control-label">{{ _('Allowed GCODE') }}</label>
         <div class="controls">
             <i class="icon icon-info-sign" title="Any GCODE commands that should not be skipped during a skipping block can be placed here as a comma delimited list of regular expressions. Ex. G1 Z.*,G0 F/d+ Z,M104,M109,M240. This may impact performance!" data-toggle="tooltip"></i>
-            <input type="text" class="input-block-level" data-bind="value: settings.plugins.cancelobject.allowed">
+            <input type="text" class="input-block-level" data-bind="value: allowed">
         </div>
         <h3>Other</h3>
         <p>
         <label class="control-label">{{ _('Show active in NavBar') }}</label>
         <div class="controls">
         	<i class="icon icon-info-sign" title="Show the active object in NavBar. Note: this switches when object is queued, not when printing move has begun." data-toggle="tooltip"></i>
-        	<input type="checkbox" data-bind="checked: settings.plugins.cancelobject.shownav">
+        	<input type="checkbox" data-bind="checked: shownav">
         </div>
         <br>
-        <!--
-        <label class="control-label">{{ _('Pause on cancel') }}</label>
-        <div class="controls">
-        	<i class="icon icon-info-sign" title="Issue an octoprint pause if the active object is cancelled" data-toggle="tooltip"></i>
-        	<input type="checkbox" data-bind="checked: settings.plugins.cancelobject.pause">
-        </div>
-        -->
+       
     </div>
 </form>
