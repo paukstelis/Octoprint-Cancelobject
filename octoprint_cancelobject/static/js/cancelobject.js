@@ -34,12 +34,10 @@ $(function() {
 
         self.addRegex = function() {
             self.object_regex.push({objreg : ""});
-            console.log(self.object_regex.slice(0))
         };
 
         self.removeRegex = function(regex) {
             self.object_regex.remove(regex)
-            console.log(self.object_regex.slice(0))
         };
 
         self.onSettingsBeforeSave = function () {

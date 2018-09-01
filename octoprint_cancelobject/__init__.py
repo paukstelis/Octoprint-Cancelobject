@@ -150,7 +150,6 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 
     def on_settings_save(self, data):
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
-        print(data)
         self.initialize()
 
     def on_event(self, event, payload):
