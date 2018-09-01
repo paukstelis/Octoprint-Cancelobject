@@ -25,7 +25,6 @@ $(function() {
             OctoPrint.get("api/plugin/"+PLUGIN_ID);
             self.settings = self.global_settings.settings.plugins.cancelobject;
             self.object_regex(self.settings.object_regex.slice(0));
-
             self.ignored = self.settings.ignored;
             self.beforegcode = self.settings.beforegcode;
             self.aftergcode = self.settings.aftergcode;
@@ -34,7 +33,7 @@ $(function() {
         };
 
         self.addRegex = function() {
-            self.object_regex.push("");
+            self.object_regex.push({objreg : ""});
             console.log(self.object_regex.slice(0))
         };
 

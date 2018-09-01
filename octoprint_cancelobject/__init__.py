@@ -18,8 +18,9 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
         super(ModifyComments, self).__init__(fileBufferedReader)
         self.patterns = []
         for each in object_regex:
-            regex = re.compile(each)
-            self.patterns.append(regex)
+            if each["objreg"]:
+                regex = re.compile(each["objreg"])
+                self.patterns.append(regex)
         self._reptag = "@{0}".format(reptag)
 
     def process_line(self, line):
@@ -60,7 +61,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         self.lastE = 0
 
     def initialize(self):
-        self.object_regex = filter(None, self._settings.get(["object_regex"]))
+        self.object_regex = self._settings.get(["object_regex"])
         self.reptag = self._settings.get(["reptag"])
         self.reptagregex = re.compile("@{0} ([^\t\n\r\f\v]*)".format(self.reptag))
         self.allowedregex = []
@@ -104,7 +105,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         )
 
     def get_settings_defaults(self):
-        return dict(object_regex=['; process (.*)',';MESH:(.*)','; printing object (.*)'],
+        return dict(object_regex=[{"objreg" : '; process (.*)'}, {"objreg" :';MESH:(.*)'}, {"objreg" : '; printing object (.*)'}],
                     reptag = "Object",
                     ignored = "ENDGCODE,STARTGCODE",
                     beforegcode = None,
@@ -149,6 +150,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 
     def on_settings_save(self, data):
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+        print(data)
         self.initialize()
 
     def on_event(self, event, payload):
@@ -274,7 +276,6 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
     def check_queue(self, comm_instance, phase, cmd, cmd_type, gcode, tags, *args, **kwargs):
         #Need this or @ commands get caught in skipping block
         if self._check_object(cmd):
-            #self.skipping = False
             return cmd
             
         if cmd == "M82":
@@ -298,6 +299,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
             if len(self.aftergcode) > 0:
                 cmd.extend(self.aftergcode)
             if self.trackE:
+            	self._logger.info("Update extrusion: {0}".format(self.lastE))
                 cmd.append("G92 E{0}".format(self.lastE))
             self.endskip = False
             return cmd
