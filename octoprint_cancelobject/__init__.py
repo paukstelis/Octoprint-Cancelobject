@@ -56,12 +56,15 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         self.beforegcode = []
         self.aftergcode = []
         self.allowed = []
+        self.trackE = False
+        self.lastE = 0
 
     def initialize(self):
         self.object_regex = filter(None, self._settings.get(["object_regex"]))
         self.reptag = self._settings.get(["reptag"])
         self.reptagregex = re.compile("@{0} ([^\t\n\r\f\v]*)".format(self.reptag))
         self.allowedregex = []
+        self.trackregex = [re.compile("G1 .* E(\d*\.\d+)")]
 
         try:
             self.beforegcode = self._settings.get(["beforegcode"]).split(",")
@@ -151,6 +154,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
     def on_event(self, event, payload):
         if event in (Events.FILE_SELECTED, Events.PRINT_STARTED):
             self.object_list = []
+            self.lastE = 0
             selectedFile = payload.get("file", "")
             with open(selectedFile, "r") as f:
                 i = 0
@@ -168,6 +172,8 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 
         elif event in (Events.PRINT_DONE, Events.PRINT_FAILED, Events.PRINT_CANCELLED, Events.FILE_DESELECTED):
             self.object_list = []
+            self.trackE = False
+            self.lastE = 0
             self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
             self.active_object = 'None'
             self._plugin_manager.send_plugin_message(self._identifier, dict(navBarActive=self.active_object))
@@ -243,16 +249,18 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         return None,
 
     def check_atcommand(self, comm, phase, command, parameters, tags=None, *args, **kwargs):
-        #self._logger.info("Got command {0} with parameters {1}".format(command, parameters))
+        
         if command != self.reptag:
             return
+            
         entry = self._get_entry(parameters)
 
         if not entry:
             self._logger.info("Could not get entry {0}".format(parameters))
             return
+            
         if entry["cancelled"]:
-            self._logger.info("Hit a cancelled object,{0}".format(parameters))
+            self._logger.info("Hit a cancelled object, {0}".format(parameters))
             self.skipping = True
             self.startskip = True
         else:
@@ -266,21 +274,42 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
     def check_queue(self, comm_instance, phase, cmd, cmd_type, gcode, tags, *args, **kwargs):
         #Need this or @ commands get caught in skipping block
         if self._check_object(cmd):
-            self.skipping = False
-
+            #self.skipping = False
+            return cmd
+            
+        if cmd == "M82":
+            self.trackE = True
+            self._logger.info("Tracking Extrusion")
+            
+        if cmd == "M83":
+            self.trackE = False
+            self._logger.info("Not Tracking Extrusion")
+            
         if self.startskip and len(self.beforegcode) > 0:
             cmd = self._skip_allow(cmd)
             if cmd:
-                self.beforegcode.append(cmd)
+                cmd = [cmd]
+                cmd.extend(self.beforegcode)
             self.startskip = False
-            return self.beforegcode
+            return cmd
 
-        if self.endskip and len(self.aftergcode) > 0:
-            self.aftergcode.append(cmd)
+        if self.endskip:
+            cmd = [cmd]
+            if len(self.aftergcode) > 0:
+                cmd.extend(self.aftergcode)
+            if self.trackE:
+                cmd.append("G92 E{0}".format(self.lastE))
             self.endskip = False
-            return self.aftergcode
+            return cmd
 
         if self.skipping:
+            if self.trackE:
+                for m in self.trackregex:
+                    matched = m.match(cmd)
+                    if matched:
+                        self.lastE = matched.group(1)
+                        #self._logger.info("Last extrusion: {0}".format(self.lastE))
+                        
             if len(self.allowed) > 0:
                 #check to see if cmd starts with something we should let through
                 cmd = self._skip_allow(cmd)
