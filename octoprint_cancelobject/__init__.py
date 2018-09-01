@@ -95,9 +95,6 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         except:
             self._logger.info("No allowed GCODE defined")
 
-    def on_settings_initialized(self):
-        self._logger.info(self.object_regex)
-
     def get_assets(self):
         return dict(
             js=["js/cancelobject.js"],
