@@ -2,6 +2,10 @@
 
 This plugin allows the user to interactively cancel objects in gcode based on comment tags added by the slicer.
 See below for instructions for specific slicers.
+### New version 0.2.0, 09/01/2018
+* Moved to using "@" commands for comment replacement statements. This should improve compatibility with some printers.
+* Automatic detection (based on M82/M83) if absolute extrusion is used and needs to be tracked. NOT HEAVILY TESTED.
+* Improved settings interface for Object Regular Expressions. Add and remove different ones for different slicers. Defaults for S3D, Cura, Slic3r
 
 ### New version 0.1.2
 * Visual improvements in the plugin Tab.
