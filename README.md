@@ -45,4 +45,5 @@ or manually using this URL:
 * Other changes may also be necessary to handle retractions and extrusion resets
 ### Cura
 * Using Cura requires using a non-master branch of the CuraEngine. You'll have to compile this yourself. Find it here: https://github.com/Ultimaker/CuraEngine/tree/feature_comments_per_object
-* As of now, it will only provide numbers for each object. 
+* As of now, it will only provide numbers for each object.
+* EDIT: Full integration with mesh names is now part of Cura and CuraEngine master branches.
