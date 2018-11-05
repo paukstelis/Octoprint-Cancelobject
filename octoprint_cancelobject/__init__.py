@@ -128,17 +128,22 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
     def get_api_commands(self):
         return dict(
             skip=[],
-            cancel=["cancelled"]
+            cancel=["cancelled"],
+            objlist=[]
         )
 
     def on_api_command(self, command, data):
         import flask
-
-        if command == "cancel":
-            if current_user.is_anonymous():
+        
+        if current_user.is_anonymous():
                 return "Insufficient rights", 403
+                
+        if command == "cancel":
             cancelled = data["cancelled"]
             self._cancel_object(cancelled)
+            
+        if command == "objlist":
+        	return flask.make_response(flask.jsonify(self.object_list))
 
     #Is this really needed?
     def on_api_get(self, request):
