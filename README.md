@@ -2,6 +2,10 @@
 
 This plugin allows the user to interactively cancel objects in gcode based on comment tags added by the slicer.
 See below for instructions for specific slicers.
+### New version 0.2.0, 09/01/2018
+* Moved to using "@" commands for comment replacement statements. This should improve compatibility with some printers.
+* Automatic detection (based on M82/M83) if absolute extrusion is used and needs to be tracked. NOT HEAVILY TESTED.
+* Improved settings interface for Object Regular Expressions. Add and remove different ones for different slicers. Defaults for S3D, Cura, Slic3r
 
 ### New version 0.1.2
 * Visual improvements in the plugin Tab.
@@ -41,4 +45,5 @@ or manually using this URL:
 * Other changes may also be necessary to handle retractions and extrusion resets
 ### Cura
 * Using Cura requires using a non-master branch of the CuraEngine. You'll have to compile this yourself. Find it here: https://github.com/Ultimaker/CuraEngine/tree/feature_comments_per_object
-* As of now, it will only provide numbers for each object. 
+* As of now, it will only provide numbers for each object.
+* EDIT: Full integration with mesh names is now part of Cura and CuraEngine master branches.
