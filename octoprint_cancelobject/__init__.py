@@ -143,7 +143,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
             self._cancel_object(cancelled)
             
         if command == "objlist":
-        	return flask.make_response(flask.jsonify(self.object_list))
+            return flask.make_response(flask.jsonify(dict(list=self.object_list)))
 
     #Is this really needed?
     def on_api_get(self, request):
