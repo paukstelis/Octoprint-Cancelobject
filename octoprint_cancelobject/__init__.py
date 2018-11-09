@@ -334,7 +334,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
                 current=self._plugin_version,
 
                 # update method: pip
-                pip="https://github.com/you/OctoPrint-Cancelobject/archive/{target_version}.zip"
+                pip="https://github.com/paukstelis/OctoPrint-Cancelobject/archive/{target_version}.zip"
             )
         )
 
