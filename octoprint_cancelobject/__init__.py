@@ -38,6 +38,64 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
                 line = "{0} {1}\n".format(self._reptag, obj)
         return line
 
+#stolen directly from filaswitch
+class Gcode_parser:
+
+    MOVE_RE = re.compile("^G0\s+|^G1\s+")
+    X_COORD_RE = re.compile(".*\s+X([-]*\d+\.*\d*)")
+    Y_COORD_RE = re.compile(".*\s+Y([-]*\d+\.*\d*)")
+    E_COORD_RE = re.compile(".*\s+E([-]*\d+\.*\d*)")
+    Z_COORD_RE = re.compile(".*\s+Z([-]*\d+\.*\d*)")
+    SPEED_VAL_RE = re.compile(".*\s+F(\d+\.*\d*)")
+    
+    def __init__(self):
+        self.last_match = None
+        
+    def is_extrusion_move(self, line):
+        """
+        Match given line against extrusion move regex
+        :param line: g-code line
+        :return: None or tuple with X, Y and E positions
+        """
+        self.last_match = None
+        m = self._parse_move_args(line)
+        if m and (m[0] is not None or m[1] is not None) and m[3] is not None and m[3] != 0:
+            self.last_match = m
+        return self.last_match
+
+    def _parse_move_args(self, line):
+
+        self.last_match = None
+        m = self.MOVE_RE.match(line)
+        if m:
+            x = None
+            y = None
+            z = None
+            e = None
+            speed = None
+
+            m = self.X_COORD_RE.match(line)
+            if m:
+                x = float(m.groups()[0])
+
+            m = self.Y_COORD_RE.match(line)
+            if m:
+                y = float(m.groups()[0])
+
+            m = self.Z_COORD_RE.match(line)
+            if m:
+                z = float(m.groups()[0])
+
+            m = self.E_COORD_RE.match(line)
+            if m:
+                e = float(m.groups()[0])
+
+            m = self.SPEED_VAL_RE.match(line)
+            if m:
+                speed = float(m.groups()[0])
+
+            return x, y, z, e, speed
+
 class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
                          octoprint.plugin.SettingsPlugin,
                          octoprint.plugin.AssetPlugin,
@@ -59,7 +117,8 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         self.allowed = []
         self.trackE = False
         self.lastE = 0
-
+        self.parser = Gcode_parser()
+        
     def initialize(self):
         self.object_regex = self._settings.get(["object_regex"])
         self.reptag = self._settings.get(["reptag"])
@@ -191,7 +250,15 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
                 if entry:
                     return None
                 else:
-                    return dict({"object" : obj, "id" : None, "active" : False, "cancelled" : False, "ignore" : False})
+                    return dict({"object" : obj,\
+                                     "id" : None,\
+                                 "active" : False,\
+                              "cancelled" : False,\
+                                 "ignore" : False,\
+                                  "max_x" : 0,\
+                                  "min_x" : 10000,\
+                                  "max_y" : 0,\
+                                  "min_y" : 10000})
             else:
                 return None
 
@@ -278,6 +345,9 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         #Need this or @ commands get caught in skipping block
         if self._check_object(cmd):
             return cmd
+        
+        #Check if the cmd is an extrusion move
+        e_move = self.parser.is_extrusion_move(cmd)
             
         if cmd == "M82":
             self.trackE = True
@@ -306,19 +376,26 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
             return cmd
 
         if self.skipping:
-            if self.trackE:
-                for m in self.trackregex:
-                    matched = m.match(cmd)
-                    if matched:
-                        self.lastE = matched.group(1)
-                        #self._logger.info("Last extrusion: {0}".format(self.lastE))
+            if self.trackE and e_move: #This probably won't handle retractions.....
+                self.lastE = e_move[2]
+                #self._logger.info("Last extrusion: {0}".format(self.lastE))
                         
             if len(self.allowed) > 0:
                 #check to see if cmd starts with something we should let through
                 cmd = self._skip_allow(cmd)
             else:
                 cmd = None,
-
+        #update objects position if it is an extrusion move:
+        if cmd and e_move:
+            obj = self._get_entry(self.active_object)
+            if obj:
+                #min max X, Y position
+                obj["max_x"] = e_move[0] if e_move[0] > obj["max_x"] else obj["max_x"]
+                obj["max_y"] = e_move[1] if e_move[1] > obj["max_y"] else obj["max_y"]
+                obj["min_x"] = e_move[0] if e_move[0] < obj["min_x"] else obj["min_x"]
+                obj["min_y"] = e_move[1] if e_move[1] < obj["min_y"] else obj["min_y"]
+                self._updateobjects()
+                #print(obj)  
         return cmd
 
     def get_update_information(self):
