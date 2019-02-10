@@ -56,10 +56,11 @@ class Gcode_parser:
         Match given line against extrusion move regex
         :param line: g-code line
         :return: None or tuple with X, Y and E positions
+        Modified to only return true with positive extrusion
         """
         self.last_match = None
         m = self._parse_move_args(line)
-        if m and (m[0] is not None or m[1] is not None) and m[3] is not None and m[3] != 0:
+        if m and (m[0] is not None or m[1] is not None) and m[3] is not None and m[3] > 0:
             self.last_match = m
         return self.last_match
 
@@ -188,7 +189,8 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         return dict(
             skip=[],
             cancel=["cancelled"],
-            objlist=[]
+            objlist=[],
+            resetpos=[]
         )
 
     def on_api_command(self, command, data):
@@ -202,7 +204,18 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
             self._cancel_object(cancelled)
             
         if command == "objlist":
-            return flask.make_response(flask.jsonify(dict(list=self.object_list)))
+        	#This is for 
+        	self._updateobjects()
+        	#This is for the iOS plugin
+        	response = flask.make_response(flask.jsonify(dict(list=self.object_list)))
+        	return response
+        	
+        if command == "resetpos":
+        	for obj in self.object_list:
+        		obj["max_x"] = 0;
+        		obj["max_y"] = 0;
+        		obj["min_x"] = 10000;
+        		obj["min_y"] = 10000;
 
     #Is this really needed?
     def on_api_get(self, request):
@@ -239,6 +252,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
             self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
             self.active_object = 'None'
             self._plugin_manager.send_plugin_message(self._identifier, dict(navBarActive=self.active_object))
+
 
     def process_line(self, line):
         if line.startswith("@"):
@@ -347,7 +361,9 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
             return cmd
         
         #Check if the cmd is an extrusion move
-        e_move = self.parser.is_extrusion_move(cmd)
+        e_move = None
+        if not self.skipping:
+            e_move = self.parser.is_extrusion_move(cmd)
             
         if cmd == "M82":
             self.trackE = True
@@ -390,12 +406,19 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
             obj = self._get_entry(self.active_object)
             if obj:
                 #min max X, Y position
-                obj["max_x"] = e_move[0] if e_move[0] > obj["max_x"] else obj["max_x"]
-                obj["max_y"] = e_move[1] if e_move[1] > obj["max_y"] else obj["max_y"]
-                obj["min_x"] = e_move[0] if e_move[0] < obj["min_x"] else obj["min_x"]
-                obj["min_y"] = e_move[1] if e_move[1] < obj["min_y"] else obj["min_y"]
-                self._updateobjects()
-                #print(obj)  
+                if e_move[0] > obj["max_x"]:
+                    obj["max_x"] = e_move[0]
+                if e_move[1] > obj["max_y"]:
+                    obj["max_y"] = e_move[1]
+                if e_move[0] < obj["min_x"]:
+                	obj["min_x"] = e_move[0]
+                if e_move[1] < obj["min_y"]: 
+                    obj["min_y"] = e_move[1]
+                  
+                #obj["max_x"] = (obj["max_x"] + e_move[0])/2
+                #obj["max_y"] = (obj["max_y"] + e_move[1])/2
+                #self._updateobjects()
+                #print(e_move[2])  
         return cmd
 
     def get_update_information(self):

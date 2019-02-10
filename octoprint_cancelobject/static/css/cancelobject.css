@@ -28,3 +28,19 @@ div.entries > div:nth-of-type(odd) {
 div.entries > div:nth-of-type(even) {
     background-color: #E4F0EF;
 }
+
+div.gcode_canvas_wrapper {
+  position: relative;
+}
+
+#gcode_canvas {
+  position: relative;
+}
+
+#gcode_canvas_cancel_overlay {
+  pointer-events: none;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
