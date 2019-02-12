@@ -16,6 +16,7 @@ $(function() {
         
         self.global_settings = parameters[0];
         self.loginState = parameters[1];
+        self.gcodeViewModel = parameters[2];
         self.cancel_mode = false;
         self.navBarActive = ko.observable();
         self.ActiveID = ko.observable();
@@ -37,6 +38,14 @@ $(function() {
             self.shownav = self.settings.shownav;
         };
         
+        self.isFileSelected = ko.pureComputed(function() {
+            return !!self.gcodeViewModel.selectedFile.path();
+        });
+
+        self.isFileSelected.subscribe(function() {
+            enableCancelButtons(self.isFileSelected());
+        });
+        
         self.addRegex = function() {
             self.object_regex.push({objreg : ""});
         };
@@ -48,6 +57,9 @@ $(function() {
         self.onStartupComplete = function() {
              addCanvasOverlays();
              CancelButtons();
+             //add click functionality to gcode canvas
+      	     var $gcodeCanvas = $("#gcode_canvas");
+             $gcodeCanvas.on("click", check_point);
         }
         
         self.onSettingsBeforeSave = function () {
@@ -170,7 +182,7 @@ $(function() {
               });
         }
         
-        //Move this to its own function so we can use it with gcodeviewer
+
         $(document.body).on("click", ".cancel-btn", confirm_cancel_button);
         
     	
@@ -204,10 +216,8 @@ $(function() {
               ' <div class="btn-group action-buttons">'+
                 '<div class="btn btn-mini disabled refreshCO" title="'+ gettext("Refresh object markers") +'">'+
                   '<i class="fa"></i>'+ gettext("Refresh objects") +'</div>'+
-                '<div class="btn btn-mini disabled resetCO" title="'+ gettext("Reset objects, requires printing to recalculate") +'">'+
+                '<div class="btn btn-mini disabled resetCO" title="'+ gettext("Reset objects, requires printing moves to recalculate") +'">'+
                   '<i class="fa"></i>'+ gettext("Reset object") +'</div>'+
-                '<div class="btn btn-mini disabled cancelCO" title="'+ gettext("Choose object to cancel") +'">'+
-                  '<i class="fa"></i>'+ gettext("Cancel Objects") +'</div>'+
               '</div>'+
             '</div>'+
           '</div>'
@@ -230,37 +240,25 @@ $(function() {
             } else if ($button.hasClass("resetCO")) {
               self.resetObjects();
               self.updateObjects();
-            } else if ($button.hasClass("cancelCO")) {
-            	if (!self.cancel_mode) {
-            	    startCancelMode();
-              	}
-              	else { endCancelMode(); }
-            }
+            } 
           }
-        });
-        
-        enableCancelButtons(true);
+        });       
+        enableCancelButtons(self.isFileSelected());
       }
-    }
-    function startCancelMode() {
-        var $gcodeCanvas = $("#gcode_canvas");
-        $gcodeCanvas.on("click", check_point);
-       
-    }
-    
-    function endCancelMode() {
-        var $gcodeCanvas = $("#gcode_canvas");
-        $gcodeCanvas.off("click", check_point);
     }
     
     function removeCancelButtons() {
       $("#gcode_cancel_controls").remove();
       delete self.$cancelButtons;
+      var $gcodeCanvas = $("#gcode_canvas");
+      $gcodeCanvas.off("click", check_point);
     }
 
     function enableCancelButtons(enabled) {
-    
+      
       if (self.$cancelButtons) {
+
+        
         if (enabled) {
           self.$cancelButtons.removeClass("disabled");
         } else {
@@ -284,12 +282,12 @@ $(function() {
     
    function check_point(event) {
    	  //assume all circular
-   	  console.log("Checking point");
+   	  //console.log("Checking point");
    	  var pt = eventPositionToCanvasPt(event)
    	  
    	  if (self.ObjectList.length > 0) {    
             for (var i = 0; i < self.ObjectList.length; i++) {
-        		if (self.ObjectList[i]["ignore"]) { continue; }
+        		if (self.ObjectList[i]["ignore"] || self.ObjectList[i]["cancelled"]) { continue; }
         		var px = (self.ObjectList[i]["max_x"] + self.ObjectList[i]["min_x"])/2
         		var py = (self.ObjectList[i]["max_y"] + self.ObjectList[i]["min_y"])/2
                 var r = 4;
@@ -382,13 +380,11 @@ $(function() {
         		ctx.beginPath();
         		var px = (self.ObjectList[i]["max_x"] + self.ObjectList[i]["min_x"])/2
         		var py = (self.ObjectList[i]["max_y"] + self.ObjectList[i]["min_y"])/2
-        		//var px = (ObjectList[i]["max_x"])
-        		//var py = (ObjectList[i]["max_y"])
-        		ctx.fillStyle = "red";
+        		ctx.fillStyle = "orange";
+        	    if (self.ObjectList[i]["cancelled"]) { ctx.fillStyle = "grey"; }
         		ctx.arc(px, py, 4, 0, 2 * Math.PI);
         		ctx.fill()
-        	    //ctx.drawImage(cancel_image,px-2, py-2, 4, 4);
-        	    //console.log(ObjectList[i]["id"],ObjectList[i]["max_x"], ObjectList[i]["min_x"],ObjectList[i]["max_y"], ObjectList[i]["min_y"]);
+        	    
              }
         }			        			
         ctx.restore();
