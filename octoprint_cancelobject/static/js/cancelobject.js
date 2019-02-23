@@ -8,12 +8,10 @@ $(function() {
     var $cancelOverlay = $('<canvas id="gcode_canvas_cancel_overlay">');
     var cancelOverlayContext = $cancelOverlay[0].getContext('2d');
 
-    
     function CancelobjectViewModel(parameters) {
-    	var PLUGIN_ID = "cancelobject";
+        var PLUGIN_ID = "cancelobject";
         var self = this;
-        
-        
+
         self.global_settings = parameters[0];
         self.loginState = parameters[1];
         self.gcodeViewModel = parameters[2];
@@ -55,10 +53,10 @@ $(function() {
         };
 
         self.onStartupComplete = function() {
-             addCanvasOverlays();
+             generateOverlays();
              CancelButtons();
              //add click functionality to gcode canvas
-      	     var $gcodeCanvas = $("#gcode_canvas");
+             var $gcodeCanvas = $("#gcode_canvas");
              $gcodeCanvas.on("click", check_point);
         }
         
@@ -68,102 +66,97 @@ $(function() {
         };
 
         self.cancelObject = function(obj) {
-        	$.ajax({
-				url: API_BASEURL + "plugin/cancelobject",
-				type: "POST",
-				dataType: "json",
-				data: JSON.stringify({
-					command: "cancel",
-					cancelled: obj
-				}),
-				contentType: "application/json; charset=UTF-8"
-			});	
-			
-			self.updateObjects();
+            $.ajax({
+                url: API_BASEURL + "plugin/cancelobject",
+                type: "POST",
+                dataType: "json",
+                data: JSON.stringify({
+                    command: "cancel",
+                    cancelled: obj
+                }),
+                contentType: "application/json; charset=UTF-8"
+            }); 
+            
+            self.updateObjects();
         }
         
         self.updateObjects = function() {
         
-        	$.ajax({
-				url: API_BASEURL + "plugin/cancelobject",
-				type: "POST",
-				dataType: "json",
-				data: JSON.stringify({
-					command: "objlist"
-				}),
-				contentType: "application/json; charset=UTF-8"
-			});
-        	
+            $.ajax({
+                url: API_BASEURL + "plugin/cancelobject",
+                type: "POST",
+                dataType: "json",
+                data: JSON.stringify({
+                    command: "objlist"
+                }),
+                contentType: "application/json; charset=UTF-8"
+            });
+            
         }
         
         self.resetObjects = function() {
         
-        	$.ajax({
-				url: API_BASEURL + "plugin/cancelobject",
-				type: "POST",
-				dataType: "json",
-				data: JSON.stringify({
-					command: "resetpos"
-				}),
-				contentType: "application/json; charset=UTF-8"
-			});
-			//Clear our canvas
-        	var ctx = cancelOverlayContext;
+            $.ajax({
+                url: API_BASEURL + "plugin/cancelobject",
+                type: "POST",
+                dataType: "json",
+                data: JSON.stringify({
+                    command: "resetpos"
+                }),
+                contentType: "application/json; charset=UTF-8"
+            });
+            //Clear our canvas
+            var ctx = cancelOverlayContext;
             ctx.save();
-            clearContext(ctx);
+            clear_Context(ctx);
             ctx.restore();
         }
         
         self.updateObjectList = function() {
-        	
-        	//start a new entry, don't yet know if this is something that can be done with jinja2
-        	var canceltable = document.getElementById("cancel-table");
-        	canceltable.innerHTML = "";
-        	var entries = document.createElement("div"); entries.className = "entries";
-        	if (self.ObjectList.length > 0) {
-        		for (var i = 0; i < self.ObjectList.length; i++) {
-        			//Ignore entries that are just there for functional purposes
-        			if (self.ObjectList[i]["ignore"]) { continue; }
-        			
-        			var entry = document.createElement("div"); entry.className = "entry";
-        			entry.id = "entry"+self.ObjectList[i]["id"];
-        			entry.activeobj = "false";
-        			
-        			var objname = document.createElement("label"); objname.className = "entrylabel";
-        			objname.appendChild(document.createTextNode(self.ObjectList[i]["object"]));
-        			entry.appendChild(objname);
-        			
-        			var cancelbutton = document.createElement("BUTTON"); cancelbutton.className = "cancel-btn btn";
-        			cancelbutton.value = self.ObjectList[i]["id"];
-        			cancelbutton.innerHTML = "Cancel";
-        			if (self.ObjectList[i]["cancelled"]) { cancelbutton.disabled = true; }
-        			entry.appendChild(cancelbutton);
-        			entries.appendChild(entry);
-        			
-        			
-        		}
+            
+            //start a new entry, don't yet know if this is something that can be done with jinja2
+            var canceltable = document.getElementById("cancel-table");
+            canceltable.innerHTML = "";
+            var entries = document.createElement("div"); entries.className = "entries";
+            if (self.ObjectList.length > 0) {
+                for (var i = 0; i < self.ObjectList.length; i++) {
+                    //Ignore entries that are just there for functional purposes
+                    if (self.ObjectList[i]["ignore"]) { continue; }
+                    
+                    var entry = document.createElement("div"); entry.className = "entry";
+                    entry.id = "entry"+self.ObjectList[i]["id"];
+                    entry.activeobj = "false";
+                    
+                    var objname = document.createElement("label"); objname.className = "entrylabel";
+                    objname.appendChild(document.createTextNode(self.ObjectList[i]["object"]));
+                    entry.appendChild(objname);
+                    
+                    var cancelbutton = document.createElement("BUTTON"); cancelbutton.className = "cancel-btn btn";
+                    cancelbutton.value = self.ObjectList[i]["id"];
+                    cancelbutton.innerHTML = "Cancel";
+                    if (self.ObjectList[i]["cancelled"]) { cancelbutton.disabled = true; }
+                    entry.appendChild(cancelbutton);
+                    entries.appendChild(entry);
+                }
 
-        	}
-        	else { canceltable.innerHTML = "Object list populated when GCODE file is loaded"; }
-        	canceltable.appendChild(entries);
-        	
-        	
-        
+            }
+            else { canceltable.innerHTML = "Object list populated when GCODE file is loaded"; }
+            canceltable.appendChild(entries);
+
         }
         
         self.updateActive = function() {
-        	
-        	var entries = $("div[id^='entry']");
-        	//console.log(entries);
-        	for (var i = 0; i < entries.length; i++) {
-        		entries[i].className = "entry";
-        	}
-        	var entry = document.getElementById("entry"+self.ActiveID);
-        	entry.className = "entry activeobject";
+            var entries = $("div[id^='entry']");
+            //console.log(entries);
+            for (var i = 0; i < entries.length; i++) {
+                entries[i].className = "entry";
+            }
+            var entry = document.getElementById("entry"+self.ActiveID);
+            entry.className = "entry activeobject";
         }
         
         function confirm_cancel_button(event) {
-        	console.log(event.target);
+            console.log(event.target);
             var theobject = event.target.value;
             confirm_cancel(theobject);
         }
@@ -176,7 +169,7 @@ $(function() {
                 cancel: gettext("Exit"),
                 proceed: gettext("Yes, Cancel It"),
                 onproceed:  function() {
-                        	//thebutton.attr("disabled", "disabled");
+                            //thebutton.attr("disabled", "disabled");
                             self.cancelObject(objid);
                         }
               });
@@ -185,22 +178,23 @@ $(function() {
 
         $(document.body).on("click", ".cancel-btn", confirm_cancel_button);
         
-    	
+        
         self.onDataUpdaterPluginMessage = function (plugin, data) {          
-        	if (data.navBarActive) {
+            if (data.navBarActive) {
                 self.navBarActive('Current Object: '+data.navBarActive);
             }
             
             if (data.ActiveID >= 0) {
-            	self.ActiveID = data.ActiveID;
-            	self.updateActive();
+                self.ActiveID = data.ActiveID;
+                self.updateActive();
             }
             //New list of objects
             if (data.objects){
-            	self.ObjectList = data.objects;
-            	self.updateObjectList();
+                self.ObjectList = data.objects;
+                self.updateObjectList();
             }
         }
+        
 //Everything below here is borrowed heavily from briancfisher's ExcludeRegion plugin
 
     function CancelButtons() {
@@ -257,42 +251,38 @@ $(function() {
     function enableCancelButtons(enabled) {
       
       if (self.$cancelButtons) {
-
-        
         if (enabled) {
           self.$cancelButtons.removeClass("disabled");
         } else {
           self.$cancelButtons.addClass("disabled");
         }
-      }
-      
+      }    
     }
 
-    function addCanvasOverlays() {
-      if ($("#canvas_container").find(".gcode_canvas_wrapper").length == 0) {
+    function generateOverlays() {
+      if ($("#canvas_container").find(".gcode_canvas_wrapper1").length == 0) {
         var $gcodeCanvas = $("#gcode_canvas");
-        var $wrapper = $('<div class="gcode_canvas_wrapper"></div>');
+        var $wrapper = $('<div class="gcode_canvas_wrapper1"></div>');
         $gcodeCanvas[0].parentNode.insertBefore($wrapper[0], $gcodeCanvas[0]);
         $wrapper.append($gcodeCanvas);
-        cloneNodeSize($gcodeCanvas[0], $wrapper[0]);
-        appendOverlay($wrapper, $cancelOverlay, $gcodeCanvas);
-        
+        clone_node($gcodeCanvas[0], $wrapper[0]);
+        placeOverlay($wrapper, $cancelOverlay, $gcodeCanvas);        
       }
     }
     
    function check_point(event) {
-   	  //assume all circular
-   	  //console.log("Checking point");
-   	  var pt = eventPositionToCanvasPt(event)
-   	  
-   	  if (self.ObjectList.length > 0) {    
+      //assume all circular
+      console.log("Checking point");
+      var pt = eventToCanvasPt(event)
+      
+      if (self.ObjectList.length > 0) {    
             for (var i = 0; i < self.ObjectList.length; i++) {
-        		if (self.ObjectList[i]["ignore"] || self.ObjectList[i]["cancelled"]) { continue; }
-        		var px = (self.ObjectList[i]["max_x"] + self.ObjectList[i]["min_x"])/2
-        		var py = (self.ObjectList[i]["max_y"] + self.ObjectList[i]["min_y"])/2
+                if (self.ObjectList[i]["ignore"] || self.ObjectList[i]["cancelled"]) { continue; }
+                var px = (self.ObjectList[i]["max_x"] + self.ObjectList[i]["min_x"])/2
+                var py = (self.ObjectList[i]["max_y"] + self.ObjectList[i]["min_y"])/2
                 var r = 4;
                 var check = Math.hypot(px - pt.x, py - pt.y);
-                //console.log(check);
+                console.log(check);
                 
                 if (check <= r) { 
                     confirm_cancel(self.ObjectList[i]["id"]);
@@ -300,26 +290,35 @@ $(function() {
                 }
 
              }
-        }	
-      
+        }   
     }
     
-    var pixelRatio = window.devicePixelRatio || 1;
-    function eventPositionToCanvasPt(event) {
+    var pixRatio = window.devicepixRatio || 1;
+    function eventToCanvasPt(event) {
       var canvas = $cancelOverlay[0];
       var x = (event.offsetX !== undefined ? event.offsetX : (event.pageX - canvas.offsetLeft));
       var y = (event.offsetY !== undefined ? event.offsetY : (event.pageY - canvas.offsetTop));
-      var pt = transformedPoint(x * pixelRatio, y * pixelRatio);
+      var pt = transformPoint(x * pixRatio, y * pixRatio);
       return pt;
     }
 
-    function appendOverlay($parent, $overlay, $canvas) {
+    function placeOverlay($parent, $overlay, $canvas) {
       $parent.append($overlay);
-      cloneNodeSize($canvas[0], $overlay[0]);
+      clone_node($canvas[0], $overlay[0]);
     }
+    
+    function clone_node(fromNode, toNode) {
+      toNode.style.height = fromNode.style.height || fromNode.width+"px";
+      toNode.style.width = fromNode.style.width || fromNode.height+"px";
+      if ((toNode.width !== undefined) && (fromNode.width !== undefined)) {
+        toNode.width = fromNode.width;
+        toNode.height = fromNode.height;
+      }
+    } 
     
     var startupComplete = false;
     var gcodeViewerPollingComplete = false;
+    
     function initializeControlsIfReady() {
       if (startupComplete && gcodeViewerPollingComplete) {
         if (self.loginState.loggedIn()) {
@@ -328,30 +327,20 @@ $(function() {
       }
     }    
 
-    function clearContext(ctx) {
-      var p1 = transformedPoint(0, 0);
-      var p2 = transformedPoint(ctx.canvas.width, ctx.canvas.height);
+    function clear_Context(ctx) {
+      var p1 = transformPoint(0, 0);
+      var p2 = transformPoint(ctx.canvas.width, ctx.canvas.height);
       ctx.clearRect(p1.x, p1.y, p2.x - p1.x, p2.y - p1.y);
     }
     
-    function cloneNodeSize(fromNode, toNode) {
-      toNode.style.height = fromNode.style.height || fromNode.width+"px";
-      toNode.style.width = fromNode.style.width || fromNode.height+"px";
-      if ((toNode.width !== undefined) && (fromNode.width !== undefined)) {
-        toNode.width = fromNode.width;
-        toNode.height = fromNode.height;
-      }
-    }
-
-    var renderFrameCallbacks;
-    
-    function renderFrame(id, callback /*, ...args */) {
-      if (renderFrameCallbacks == null) {
-        renderFrameCallbacks = {};
+    var render_frameCallbacks;    
+    function render_frame(id, callback /*, ...args */) {
+      if (render_frameCallbacks == null) {
+        render_frameCallbacks = {};
 
         requestAnimationFrame(function() {
-          var callbacks = renderFrameCallbacks;
-          renderFrameCallbacks = null;
+          var callbacks = render_frameCallbacks;
+          render_frameCallbacks = null;
 
           for (var id in callbacks) {
             var cb = callbacks[id];
@@ -360,34 +349,44 @@ $(function() {
         });
       }
 
-      if (!renderFrameCallbacks[id]) {
-        renderFrameCallbacks[id] = [ callback, Array.prototype.slice.call(arguments, 2) ];
+      if (!render_frameCallbacks[id]) {
+        render_frameCallbacks[id] = [ callback, Array.prototype.slice.call(arguments, 2) ];
       }
     }
+
+    var svgs = document.createElementNS("http://www.w3.org/2000/svg",'svg');
+    var pts  = svgs.createSVGPoint();
+    overXform = svgs.createSVGMatrix();
     
     function rendercancelOverlay() {
-      renderFrame("cancelOverlay",the_callback);
+      var $gcodeCanvas = $("#gcode_canvas");
+      var gc_canvascontext = $gcodeCanvas[0].getContext('2d');
+      var matrix = gc_canvascontext.getTransform();
+      overXform = matrix
+      //console.log(matrix);
+      cancelOverlayContext.setTransform(matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f);
+      render_frame("cancelOverlay",the_callback);
     }
     
     function the_callback() {
         var ctx = cancelOverlayContext;
         ctx.save();
-        clearContext(ctx);       
+        clear_Context(ctx);       
         if (self.ObjectList.length > 0) {    
             for (var i = 0; i < self.ObjectList.length; i++) {
-        		//Ignore entries that are just there for functional purposes
-        		if (self.ObjectList[i]["ignore"]) { continue; }
-        		ctx.beginPath();
-        		var px = (self.ObjectList[i]["max_x"] + self.ObjectList[i]["min_x"])/2
-        		var py = (self.ObjectList[i]["max_y"] + self.ObjectList[i]["min_y"])/2
-        		ctx.fillStyle = "orange";
-        	    if (self.ObjectList[i]["cancelled"]) { ctx.fillStyle = "grey"; }
-        		ctx.arc(px, py, 4, 0, 2 * Math.PI);
-        		ctx.fill()
-        	    
+                //Ignore entries that are just there for functional purposes
+                if (self.ObjectList[i]["ignore"]) { continue; }
+                ctx.beginPath();
+                var px = (self.ObjectList[i]["max_x"] + self.ObjectList[i]["min_x"])/2
+                var py = (self.ObjectList[i]["max_y"] + self.ObjectList[i]["min_y"])/2
+                ctx.fillStyle = "orange";
+                if (self.ObjectList[i]["cancelled"]) { ctx.fillStyle = "grey"; }
+                ctx.arc(px, py, 4, 0, 2 * Math.PI);
+                ctx.fill()
+                
              }
-        }			        			
-        ctx.restore();
+        }                               
+        ctx.restore();           
     }
 
     var gcodeViewerPollFn = function() {
@@ -396,22 +395,18 @@ $(function() {
         return;
       }
     }
-    
-    var svg = document.createElementNS("http://www.w3.org/2000/svg",'svg');
-    var pt  = svg.createSVGPoint();
-    overlayXform = svg.createSVGMatrix();
-    
-    function transformedPoint(x,y) {
-        pt.x=x; pt.y=y;
-        return pt.matrixTransform(overlayXform.inverse());
+
+    function transformPoint(x,y) {
+        pts.x=x; pts.y=y;
+        return pts.matrixTransform(overXform.inverse());
     }
+    
     GCODE.renderer.setOption({
-        onViewportChange: function(xform) {
-          overlayXform = xform;
-          cancelOverlayContext.setTransform(xform.a, xform.b, xform.c, xform.d, xform.e, xform.f);
-          rendercancelOverlay();
-      
-    },
+        onViewportChange: function(tform) {
+          overXform = tform;
+          cancelOverlayContext.setTransform(tform.a, tform.b, tform.c, tform.d, tform.e, tform.f);
+          rendercancelOverlay();   
+        },
     });
 }
  

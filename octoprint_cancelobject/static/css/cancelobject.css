@@ -29,7 +29,7 @@ div.entries > div:nth-of-type(even) {
     background-color: #E4F0EF;
 }
 
-div.gcode_canvas_wrapper {
+div.gcode_canvas_wrapper1 {
   position: relative;
 }
 

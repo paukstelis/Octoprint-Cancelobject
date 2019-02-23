@@ -1,6 +1,7 @@
 # coding=utf-8
 from __future__ import absolute_import
-
+import logging
+import logging.handlers
 import octoprint.plugin
 import octoprint.filemanager
 import octoprint.filemanager.util
@@ -8,6 +9,7 @@ import octoprint.printer
 import octoprint.util
 import re
 import flask
+import time
 from flask.ext.login import current_user
 
 from octoprint.events import Events
@@ -59,12 +61,12 @@ class Gcode_parser:
         Modified to only return true with positive extrusion
         """
         self.last_match = None
-        m = self._parse_move_args(line)
+        m = self.parse_move_args(line)
         if m and (m[0] is not None or m[1] is not None) and m[3] is not None and m[3] != 0:
             self.last_match = m
         return self.last_match
 
-    def _parse_move_args(self, line):
+    def parse_move_args(self, line):
 
         self.last_match = None
         m = self.MOVE_RE.match(line)
@@ -105,6 +107,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
                          octoprint.plugin.EventHandlerPlugin):
 
     def __init__(self):
+        self._logger = logging.getLogger("octoprint.plugins.cancelobject")
         self.object_list = []
         self.skipping = False
         self.startskip = False
@@ -118,9 +121,14 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         self.allowed = []
         self.trackE = False
         self.lastE = 0
+        self.prevE = 0
+        self.skipstarttime = 0.0
         self.parser = Gcode_parser()
         
+        self._console_logger = None
+        
     def initialize(self):
+    	self._console_logger = logging.getLogger("octoprint.plugins.cancelobject")
         self.object_regex = self._settings.get(["object_regex"])
         self.reptag = self._settings.get(["reptag"])
         self.reptagregex = re.compile("@{0} ([^\t\n\r\f\v]*)".format(self.reptag))
@@ -132,19 +140,19 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
             # Remove any whitespace entries to avoid sending empty lines
             self.beforegcode = filter(None, self.beforegcode)
         except:
-            self._logger.info("No beforegcode defined")
+            self._console_logger.info("No beforegcode defined")
         try:
             self.aftergcode = self._settings.get(["aftergcode"]).split(",")
             # Remove any whitespace entries to avoid sending empty lines
             self.aftergcode = filter(None, self.aftergcode)
         except:
-            self._logger.info("No aftergcode defined")
+            self._console_logger.info("No aftergcode defined")
         try:
             self.ignored = self._settings.get(["ignored"]).split(",")
             # Remove any whitespace entries to avoid sending empty lines
             self.ignored = filter(None, self.ignored)
         except:
-            self._logger.info("No ignored objects defined")
+            self._console_logger.info("No ignored objects defined")
         try:
             self.allowed = self._settings.get(["allowed"]).split(",")
             # Remove any whitespace entries
@@ -153,8 +161,17 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
                 regex = re.compile(allow)
                 self.allowedregex.append(regex)
         except:
-            self._logger.info("No allowed GCODE defined")
+            self._console_logger.info("No allowed GCODE defined")
+            
+	def on_startup(self, host, port):
+		console_logging_handler = logging.handlers.RotatingFileHandler(self._settings.get_plugin_logfile_path(postfix="cancelobject"), maxBytes=2*1024*1024)
+		console_logging_handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
+		console_logging_handler.setLevel(logging.INFO)
 
+		self._console_logger.addHandler(console_logging_handler)
+		self._console_logger.setLevel(logging.INFO)
+		self._console_logger.propagate = False
+		
     def get_assets(self):
         return dict(
             js=["js/cancelobject.js"],
@@ -264,14 +281,14 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
                 if entry:
                     return None
                 else:
-                    return dict({"object" : obj,\
-                                     "id" : None,\
-                                 "active" : False,\
-                              "cancelled" : False,\
-                                 "ignore" : False,\
-                                  "max_x" : 0,\
-                                  "min_x" : 10000,\
-                                  "max_y" : 0,\
+                    return dict({"object" : obj,
+                                     "id" : None,
+                                 "active" : False,
+                              "cancelled" : False,
+                                 "ignore" : False,
+                                  "max_x" : 0,
+                                  "min_x" : 10000,
+                                  "max_y" : 0,
                                   "min_y" : 10000})
             else:
                 return None
@@ -316,16 +333,16 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
     def _cancel_object(self, cancelled):
         obj = self._get_entry_byid(cancelled)
         obj["cancelled"] = True
-        self._logger.info("Object {0} cancelled".format(obj["object"]))
+        self._console_logger.info("Object {0} cancelled".format(obj["object"]))
         if obj["object"] == self.active_object:
             self.skipping = True
 
-    def _skip_allow(self,cmd):
+    def _skip_allow(self, cmd):
         for allow in self.allowedregex:
             try:
                 match = allow.match(cmd)
                 if match:
-                    self._logger.info("Allowing command: {0}".format(cmd))
+                    self._console_logger.info("Allowing command: {0}".format(cmd))
                     return cmd
             except:
                 print "Skip regex error"
@@ -340,11 +357,12 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         entry = self._get_entry(parameters)
 
         if not entry:
-            self._logger.info("Could not get entry {0}".format(parameters))
+            self._console_logger.info("Could not get entry {0}".format(parameters))
             return
             
         if entry["cancelled"]:
-            self._logger.info("Hit a cancelled object, {0}".format(parameters))
+            self._console_logger.info("Hit a cancelled object, {0}".format(parameters))
+            self.skipstarttime = time.time()
             self.skipping = True
             self.startskip = True
         else:
@@ -362,16 +380,15 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         
         #Check if the cmd is an extrusion move
         e_move = None
-        if not self.skipping:
-            e_move = self.parser.is_extrusion_move(cmd)
+        e_move = self.parser.is_extrusion_move(cmd)
             
         if cmd == "M82":
             self.trackE = True
-            self._logger.info("Tracking Extrusion")
+            self._console_logger.info("Tracking Extrusion")
             
         if cmd == "M83":
             self.trackE = False
-            self._logger.info("Not Tracking Extrusion")
+            self._console_logger.info("Not Tracking Extrusion")
             
         if self.startskip and len(self.beforegcode) > 0:
             cmd = self._skip_allow(cmd)
@@ -382,20 +399,25 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
             return cmd
 
         if self.endskip:
+            self._console_logger.info("Took {0} to skip block".format(time.time() - self.skipstarttime))
             cmd = [cmd]
             if len(self.aftergcode) > 0:
                 cmd.extend(self.aftergcode)
             if self.trackE:
-                self._logger.info("Update extrusion: {0}".format(self.lastE))
+                #self._console_logger.info("Update extrusion: {0}".format(self.lastE))
                 cmd.append("G92 E{0}".format(self.lastE))
             self.endskip = False
+            #self._console_logger.info(cmd)
             return cmd
 
         if self.skipping:
-            if self.trackE and e_move: #This probably won't handle retractions.....
-                self.lastE = e_move[3]
-                #self._logger.info("Last extrusion: {0}".format(self.lastE))
-                        
+            if self.trackE:
+                #check if command moves E at all
+                eaction = None
+                eaction = self.parser.parse_move_args(cmd)
+                if eaction and eaction[3]:
+                    self.lastE = eaction[3]
+                    #self._console_logger.info("Last extrusion: {0}".format(self.lastE))                        
             if len(self.allowed) > 0:
                 #check to see if cmd starts with something we should let through
                 cmd = self._skip_allow(cmd)
@@ -403,9 +425,12 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
                 cmd = None,
                 
         #update objects position if it is an extrusion move:
-        if cmd and e_move:
-            if e_move[3] > 0:
-                obj = self._get_entry(self.active_object)
+        if cmd and e_move and not self.skipping:
+            #self._console_logger.info("E{0}".format(e_move[3]))
+            
+            #Absolute extrusion            
+            if self.trackE and e_move[3] > self.prevE:
+            	obj = self._get_entry(self.active_object)
                 if obj:
                 #min max X, Y position
                     if e_move[0] > obj["max_x"]:
@@ -417,6 +442,26 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
                     if e_move[1] < obj["min_y"]: 
                         obj["min_y"] = e_move[1]
 
+            #Relative extrusiom
+            elif e_move[3] > 0.0 and not self.trackE:
+                #self._console_logger.info("Extrusion was: {0}".format(e_move[3]))
+                obj = self._get_entry(self.active_object)
+                if obj:
+                #min max X, Y position
+                    if e_move[0] > obj["max_x"]:
+                        obj["max_x"] = e_move[0]
+                    if e_move[1] > obj["max_y"]:
+                        obj["max_y"] = e_move[1]
+                    if e_move[0] < obj["min_x"]:
+                        obj["min_x"] = e_move[0]
+                    if e_move[1] < obj["min_y"]: 
+                        obj["min_y"] = e_move[1]
+                        
+        #cycle the extrusion distance
+        if e_move:
+        	self.prevE = e_move[3]
+        	
+        #your wish is my...
         return cmd
 
     def get_update_information(self):
