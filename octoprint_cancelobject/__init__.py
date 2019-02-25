@@ -40,7 +40,7 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
                 line = "{0} {1}\n".format(self._reptag, obj)
         return line
 
-#stolen directly from filaswitch
+#stolen directly from filaswitch, https://github.com/spegelius/filaswitch
 class Gcode_parser:
 
     MOVE_RE = re.compile("^G0\s+|^G1\s+")
@@ -58,7 +58,6 @@ class Gcode_parser:
         Match given line against extrusion move regex
         :param line: g-code line
         :return: None or tuple with X, Y and E positions
-        Modified to only return true with positive extrusion
         """
         self.last_match = None
         m = self.parse_move_args(line)
@@ -107,7 +106,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
                          octoprint.plugin.EventHandlerPlugin):
 
     def __init__(self):
-        self._logger = logging.getLogger("octoprint.plugins.cancelobject")
+        #self._logger = logging.getLogger("octoprint.plugins.cancelobject")
         self.object_list = []
         self.skipping = False
         self.startskip = False
@@ -244,6 +243,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         self.initialize()
 
     def on_event(self, event, payload):
+
         if event in (Events.FILE_SELECTED, Events.PRINT_STARTED):
             self.object_list = []
             self.lastE = 0
@@ -269,8 +269,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
             self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
             self.active_object = 'None'
             self._plugin_manager.send_plugin_message(self._identifier, dict(navBarActive=self.active_object))
-
-
+            
     def process_line(self, line):
         if line.startswith("@"):
             obj = self._check_object(line)
@@ -417,9 +416,13 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
                 eaction = self.parser.parse_move_args(cmd)
                 if eaction and eaction[3]:
                     self.lastE = eaction[3]
-                    #self._console_logger.info("Last extrusion: {0}".format(self.lastE))                        
+                    #self._console_logger.info("Last extrusion: {0}".format(self.lastE))
+                #We also need to catch any distance resets
+                if cmd == "G92 E0":
+                	self.lastE = 0.0
+                	#self._console_logger.info("Reset extrusion")
             if len(self.allowed) > 0:
-                #check to see if cmd starts with something we should let through
+                #check to see if cmd is something we should let through
                 cmd = self._skip_allow(cmd)
             else:
                 cmd = None,
@@ -427,7 +430,6 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         #update objects position if it is an extrusion move:
         if cmd and e_move and not self.skipping:
             #self._console_logger.info("E{0}".format(e_move[3]))
-            
             #Absolute extrusion            
             if self.trackE and e_move[3] > self.prevE:
             	obj = self._get_entry(self.active_object)

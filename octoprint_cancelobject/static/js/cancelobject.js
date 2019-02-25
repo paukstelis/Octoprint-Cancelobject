@@ -196,7 +196,7 @@ $(function() {
         }
         
 //Everything below here is borrowed heavily from briancfisher's ExcludeRegion plugin
-
+//https://github.com/bradcfisher/OctoPrint-ExcludeRegionPlugin
     function CancelButtons() {
       // Don't create buttons if using TouchUI, since they don't work anyway
       if (self.touchui && self.touchui.isActive())
