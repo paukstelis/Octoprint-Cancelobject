@@ -7,6 +7,8 @@ See below for instructions for specific slicers.
 * Improved tracking of absolute extrusion distances. It is still recommended to use relative extrusion distances in your slicer.
 * See below for tips and notes for using with various slicers.
 
+![screenshot](./viewer.png)
+![screenshot](./cancellist.png)
 ## Configuration
 ### Settings
 * By default, active object (current object being queued) is displayed in the NavBar.
@@ -18,12 +20,12 @@ See below for instructions for specific slicers.
 
 ### Cura (1.3.6 or greater)
 * Objects are automatically tagged with the `;MESH:<stl file name>` tag.
-* Please note that the way that Cura does supports means that ALL supports are placed into an object called `NONMESH`. Cancelling objects will not cancel its supports.
+* Please note that the way that Cura does supports means that ALL supports are placed into an object called `NONMESH`. Cancelling an object will not cancel its supports.
 * Do not use stl files that have non-ASCII characters. This will confuse all current versions of Marlin.
 ### Slic3r PE (1.42 alpha and future versions)
 * Enable `Label objects` in the Output section
 * Object names can be modified in the object list in the right panel. Note, this only works for objects that are imported independently, not on copies of objects.
-* For the end custom GCODE, include at the start: `printing object ENDGCODE`
+* For the end custom GCODE, include at the start: `; printing object ENDGCODE`
 ### Slic3r
 * Use the current development build snapshot: https://dl.slic3r.org/dev/
 * Enable `Label prints with object ID` in the Output section
