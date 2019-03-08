@@ -155,16 +155,22 @@ $(function() {
             entry.className = "entry activeobject";
         }
         
-        function confirm_cancel_button(event) {
-            console.log(event.target);
-            var theobject = event.target.value;
-            confirm_cancel(theobject);
+        function get_object_name(objid) {
+            var objname = self.ObjectList[objid]["object"];
+            return objname;    
         }
         
-        function confirm_cancel(objid) {
+        function confirm_cancel_button(event) {
+            //console.log(event.target);
+            var theobject = event.target.value;
+            var objname = get_object_name(theobject);
+            confirm_cancel(theobject, objname);
+        }
+        
+        function confirm_cancel(objid, objname) {
             showConfirmationDialog({
                 title: gettext("Are you sure?"),
-                message: gettext("<p><strong>You are about to cancel this object.</strong>"),
+                message: gettext("<p><strong>You are about to cancel object "+objname+".</strong>"),
                 question: gettext("Are you sure you want to do this?"),
                 cancel: gettext("Exit"),
                 proceed: gettext("Yes, Cancel It"),
@@ -175,7 +181,6 @@ $(function() {
               });
         }
         
-
         $(document.body).on("click", ".cancel-btn", confirm_cancel_button);
         
         
@@ -211,7 +216,9 @@ $(function() {
                 '<div class="btn btn-mini disabled refreshCO" title="'+ gettext("Refresh object markers") +'">'+
                   '<i class="fa"></i>'+ gettext("Refresh objects") +'</div>'+
                 '<div class="btn btn-mini disabled resetCO" title="'+ gettext("Reset objects, requires printing moves to recalculate") +'">'+
-                  '<i class="fa"></i>'+ gettext("Reset object") +'</div>'+
+                  '<i class="fa"></i>'+ gettext("Reset objects") +'</div>'+
+                '<div class="btn btn-mini disabled toggleCO" title="'+ gettext("Toggle object markers on/off") +'">'+
+                  '<i class="fa"></i>'+ gettext("Toggle markers") +'</div>'+
               '</div>'+
             '</div>'+
           '</div>'
@@ -234,7 +241,11 @@ $(function() {
             } else if ($button.hasClass("resetCO")) {
               self.resetObjects();
               self.updateObjects();
-            } 
+            } else if ($button.hasClass("toggleCO")) {
+              var overlay = document.getElementById('gcode_canvas_cancel_overlay');
+              if (overlay.style.visibility == 'visible') { overlay.style.visibility='hidden'; }
+              else {  overlay.style.visibility='visible'; }
+            }
           }
         });       
         enableCancelButtons(self.isFileSelected());
@@ -285,7 +296,7 @@ $(function() {
                 console.log(check);
                 
                 if (check <= r) { 
-                    confirm_cancel(self.ObjectList[i]["id"]);
+                    confirm_cancel(self.ObjectList[i]["id"], self.ObjectList[i]["object"]);
                     break;
                 }
 
