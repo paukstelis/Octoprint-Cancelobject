@@ -304,7 +304,7 @@ $(function() {
         }   
     }
     
-    var pixRatio = window.devicepixRatio || 1;
+    var pixRatio = window.devicepixelRatio || 1;
     function eventToCanvasPt(event) {
       var canvas = $cancelOverlay[0];
       var x = (event.offsetX !== undefined ? event.offsetX : (event.pageX - canvas.offsetLeft));

@@ -7,7 +7,7 @@ import octoprint.filemanager
 import octoprint.filemanager.util
 import octoprint.printer
 import octoprint.util
-import re
+import re, os, sys
 import flask
 import time
 from flask.ext.login import current_user
@@ -123,7 +123,6 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         self.prevE = 0
         self.skipstarttime = 0.0
         self.parser = Gcode_parser()
-        
         self._console_logger = None
         
     def initialize(self):
@@ -133,7 +132,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         self.reptagregex = re.compile("@{0} ([^\t\n\r\f\v]*)".format(self.reptag))
         self.allowedregex = []
         self.trackregex = [re.compile("G1 .* E(\d*\.\d+)")]
-
+        print(self.get_asset_folder())
         try:
             self.beforegcode = self._settings.get(["beforegcode"]).split(",")
             # Remove any whitespace entries to avoid sending empty lines
@@ -303,9 +302,13 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
     def _updatedisplay(self):
         navmessage = ""
         if self.active_object:
-            navmessage=str(self.active_object)
-            obj = self._get_entry(self.active_object)
-            self._plugin_manager.send_plugin_message(self._identifier, dict(ActiveID=obj["id"]))
+            try:
+                navmessage=str(self.active_object)
+                obj = self._get_entry(self.active_object)
+                self._plugin_manager.send_plugin_message(self._identifier, dict(ActiveID=obj["id"]))
+            except:
+            	self._console_logger.info("No active object id!")
+            	
         if self._settings.get(['shownav']):
             self._plugin_manager.send_plugin_message(self._identifier, dict(navBarActive=navmessage))
 
