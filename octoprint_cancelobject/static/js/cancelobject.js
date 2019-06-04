@@ -123,7 +123,7 @@ $(function() {
                     //Ignore entries that are just there for functional purposes
                     if (self.ObjectList[i]["ignore"]) { continue; }
                     
-                    var entry = document.createElement("div"); entry.className = "entry";
+                    var entry = document.createElement("div"); entry.className = "entry-cancel";
                     entry.id = "entry"+self.ObjectList[i]["id"];
                     entry.activeobj = "false";
                     
@@ -149,7 +149,7 @@ $(function() {
             var entries = $("div[id^='entry']");
             //console.log(entries);
             for (var i = 0; i < entries.length; i++) {
-                entries[i].className = "entry";
+                entries[i].className = "entry-cancel";
             }
             var entry = document.getElementById("entry"+self.ActiveID);
             entry.className = "entry activeobject";
