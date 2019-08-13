@@ -22,11 +22,11 @@
 }
 
 div.entries > div:nth-of-type(odd) {
-    background-color: #e0e0e0;
+    background-color: transparent;
 }
 
 div.entries > div:nth-of-type(even) {
-    background-color: #E4F0EF;
+    background-color: transparent;
 }
 
 div.gcode_canvas_wrapper1 {
