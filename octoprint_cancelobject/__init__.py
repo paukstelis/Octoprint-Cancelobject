@@ -267,7 +267,8 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
             self.lastE = 0
             self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
             self.active_object = 'None'
-            self._plugin_manager.send_plugin_message(self._identifier, dict(navBarActive=self.active_object))
+            if self._settings.get(['shownav']):
+                self._plugin_manager.send_plugin_message(self._identifier, dict(navBarActive=self.active_object))
             
     def process_line(self, line):
         if line.startswith("@"):
