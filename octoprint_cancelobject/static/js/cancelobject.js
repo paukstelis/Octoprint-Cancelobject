@@ -5,7 +5,7 @@
  * License: AGPLv3
  */
 $(function() {
-    var $cancelOverlay = $('<canvas id="gcode_canvas_cancel_overlay">');
+    var $cancelOverlay = $('<canvas id="gcode_canvas_cancel_overlay" style="visibility: hidden">');
     var cancelOverlayContext = $cancelOverlay[0].getContext('2d');
 
     function CancelobjectViewModel(parameters) {
@@ -55,9 +55,6 @@ $(function() {
         self.onStartupComplete = function() {
              generateOverlays();
              CancelButtons();
-             //add click functionality to gcode canvas
-             var $gcodeCanvas = $("#gcode_canvas");
-             $gcodeCanvas.on("click", check_point);
         }
         
         self.onSettingsBeforeSave = function () {
@@ -200,7 +197,7 @@ $(function() {
             }
         }
         
-//Everything below here is borrowed heavily from briancfisher's ExcludeRegion plugin
+//Everything below here is borrowed heavily from bradcfisher's ExcludeRegion plugin
 //https://github.com/bradcfisher/OctoPrint-ExcludeRegionPlugin
     function CancelButtons() {
       // Don't create buttons if using TouchUI, since they don't work anyway
@@ -224,6 +221,12 @@ $(function() {
           '</div>'
         );
 
+        // Check if user isn't logged in
+        if (!self.loginState.loggedIn()) {
+            // Disable edit buttons
+            $("#gcode_cancel_controls button").addClass("disabled");
+        }
+
         // Edit button click event
         self.$cancelButtons = $("#gcode_cancel_controls .btn");
 
@@ -242,32 +245,62 @@ $(function() {
               self.resetObjects();
               self.updateObjects();
             } else if ($button.hasClass("toggleCO")) {
-              var overlay = document.getElementById('gcode_canvas_cancel_overlay');
-              if (overlay.style.visibility == 'visible') { overlay.style.visibility='hidden'; }
-              else {  overlay.style.visibility='visible'; }
+              toggleMarkers();
             }
           }
         });       
         enableCancelButtons(self.isFileSelected());
       }
     }
+
+    function toggleMarkers(showMarkers) {
+      var overlay = document.getElementById('gcode_canvas_cancel_overlay');
+      if (overlay == null) return;
+      var markersVisible = (overlay.style.visibility == 'visible');
+
+      if ((showMarkers === undefined) || (markersVisible != showMarkers)) {
+        var $gcodeCanvas = $("#gcode_canvas");
+        if (markersVisible) {
+          overlay.style.visibility='hidden';
+          $gcodeCanvas.off("click", check_point);
+        } else {
+          overlay.style.visibility='visible';
+          $gcodeCanvas.on("click", check_point);
+        }
+      }
+    }
     
     function removeCancelButtons() {
       $("#gcode_cancel_controls").remove();
       delete self.$cancelButtons;
-      var $gcodeCanvas = $("#gcode_canvas");
-      $gcodeCanvas.off("click", check_point);
+      toggleMarkers(false);
     }
 
     function enableCancelButtons(enabled) {
-      
       if (self.$cancelButtons) {
         if (enabled) {
           self.$cancelButtons.removeClass("disabled");
+          toggleMarkers(true);
         } else {
           self.$cancelButtons.addClass("disabled");
+          toggleMarkers(false);
         }
       }    
+    }
+
+    function resetCancelButtons() {
+      removeCancelButtons();
+      CancelButtons();
+    }
+
+    if (self.touchui) {
+      self.touchui.isActive.subscribe(resetCancelButtons);
+    }
+    self.onSettingsHidden = resetCancelButtons;
+    self.onUserLoggedIn = resetCancelButtons;
+
+    self.onUserLoggedOut = function() {
+      removeCancelButtons();
     }
 
     function generateOverlays() {
@@ -326,17 +359,6 @@ $(function() {
         toNode.height = fromNode.height;
       }
     } 
-    
-    var startupComplete = false;
-    var gcodeViewerPollingComplete = false;
-    
-    function initializeControlsIfReady() {
-      if (startupComplete && gcodeViewerPollingComplete) {
-        if (self.loginState.loggedIn()) {
-          addRefreshButton();
-        }
-      }
-    }    
 
     function clear_Context(ctx) {
       var p1 = transformPoint(0, 0);
@@ -370,12 +392,6 @@ $(function() {
     overXform = svgs.createSVGMatrix();
     
     function rendercancelOverlay() {
-      var $gcodeCanvas = $("#gcode_canvas");
-      var gc_canvascontext = $gcodeCanvas[0].getContext('2d');
-      var matrix = gc_canvascontext.getTransform();
-      overXform = matrix
-      //console.log(matrix);
-      cancelOverlayContext.setTransform(matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f);
       render_frame("cancelOverlay",the_callback);
     }
     
@@ -400,23 +416,21 @@ $(function() {
         ctx.restore();           
     }
 
-    var gcodeViewerPollFn = function() {
-      if (!GCODE || !GCODE.renderer || !GCODE.renderer.getOptions().hasOwnProperty('onViewportChange')) {
-        setTimeout(gcodeViewerPollFn, 10);
-        return;
-      }
-    }
-
     function transformPoint(x,y) {
         pts.x=x; pts.y=y;
         return pts.matrixTransform(overXform.inverse());
     }
-    
+   
+    var previousOnViewportChange = GCODE.renderer.getOptions().onViewportChange;
     GCODE.renderer.setOption({
         onViewportChange: function(tform) {
           overXform = tform;
           cancelOverlayContext.setTransform(tform.a, tform.b, tform.c, tform.d, tform.e, tform.f);
           rendercancelOverlay();   
+          // Invoke any previously registered viewport change handler to ensure we don't interfere
+          // with other plugins which may also be listening.
+          if (previousOnViewportChange)
+            previousOnViewportChange(tform);
         },
     });
 }

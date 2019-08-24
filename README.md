@@ -43,7 +43,6 @@ See below for instructions for specific slicers.
 * It is designed for use with Marlin and Marlin-flavored firmwares. The behaviour with other firmwares is unknown.
 * Gcodeviewer integration requires that the object has to have had some printing moves before its coordinates are known. Use the `Refresh Objects` button to update.
 * Some slicers will place first layer extras (brim, raft, etc.) as part of an object. If this throws off the position of the objects in the gcodeviewer you can use the `Reset Objects` button.
-* There are known issues when this plugin and the ExcludeRegion plugin are used together. In theory, they can be used together. However, object markers are not automatically refreshed on moving/scaling if ExcludeRegion is active. Use the `Refresh Objects` button to render them again.
 ## Setup
 
 Install via the bundled [Plugin Manager](https://github.com/foosel/OctoPrint/wiki/Plugin:-Plugin-Manager)
