@@ -19,6 +19,10 @@
 	border-color: red;
 	border-width: 2px;
 	border-style: solid;
+        display: inline-block;
+	padding: 5px;
+	width: 100%;
+	position: relative;
 }
 
 div.entries > div:nth-of-type(odd) {
