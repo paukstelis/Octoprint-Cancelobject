@@ -456,6 +456,17 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 
         # update objects position if it is an extrusion move:
         if cmd and e_move and not self.skipping:
+            self.update_objects_position(e_move)
+
+        # cycle the extrusion distance
+        if e_move:
+            self.prevE = e_move[3]
+
+        # your wish is my...
+        return cmd
+
+    def update_objects_position(self, e_move):
+        try:
             # self._console_logger.info("E{0}".format(e_move[3]))
             # Absolute extrusion
             if self.trackE and e_move[3] > self.prevE:
@@ -477,21 +488,16 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
                 obj = self._get_entry(self.active_object)
                 if obj:
                     # min max X, Y position
-                    if e_move[0] > obj["max_x"]:
+                    if e_move[0] is not None and e_move[0] > obj["max_x"]:
                         obj["max_x"] = e_move[0]
-                    if e_move[1] > obj["max_y"]:
+                    if e_move[1] is not None and e_move[1] > obj["max_y"]:
                         obj["max_y"] = e_move[1]
-                    if e_move[0] < obj["min_x"]:
+                    if e_move[0] is not None and e_move[0] < obj["min_x"]:
                         obj["min_x"] = e_move[0]
-                    if e_move[1] < obj["min_y"]:
+                    if e_move[1] is not None and e_move[1] < obj["min_y"]:
                         obj["min_y"] = e_move[1]
-
-        # cycle the extrusion distance
-        if e_move:
-            self.prevE = e_move[3]
-
-        # your wish is my...
-        return cmd
+        except Exception as err:
+            self._console_logger.error("Error updating object position: " + str(err))
 
     def get_update_information(self):
         return dict(
