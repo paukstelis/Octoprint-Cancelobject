@@ -44,7 +44,7 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
             matched = pattern.match(line)
             if matched:
                 obj = matched.group(1)
-                line = "{0} {1}\n".format(self._reptag, obj.encode('utf-8'))
+                line = "{0} {1}\n".format(self._reptag, obj.encode('ascii','ignore'))
         return line
 
 # stolen directly from filaswitch, https://github.com/spegelius/filaswitch
