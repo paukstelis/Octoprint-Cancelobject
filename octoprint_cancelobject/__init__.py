@@ -22,7 +22,7 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
         self.patterns = []
         for each in object_regex:
             if each["objreg"]:
-                regex = re.compile(each["objreg"], re.UNICODE)
+                regex = re.compile(each["objreg"])
                 self.patterns.append(regex)
         self._reptag = "@{0}".format(reptag)
 
@@ -44,7 +44,7 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
             matched = pattern.match(line)
             if matched:
                 obj = matched.group(1)
-                line = "{0} {1}\n".format(self._reptag, obj)
+                line = "{0} {1}\n".format(self._reptag, obj.encode('utf-8'))
         return line
 
 # stolen directly from filaswitch, https://github.com/spegelius/filaswitch
