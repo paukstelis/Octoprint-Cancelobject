@@ -40,12 +40,6 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
         return line
 
     def _matchComment(self, line):
-        try:
-            # if line is of type bytes then convert to string
-            line = line.decode("utf-8", "strict")
-        except (UnicodeDecodeError, AttributeError):
-            pass
-
         for pattern in self.patterns:
             matched = pattern.match(line)
             if matched:
