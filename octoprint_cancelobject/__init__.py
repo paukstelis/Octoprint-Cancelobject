@@ -37,7 +37,7 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
                 line = self._matchComment(line)
         if not len(line):
             return None
-        return line
+        return line.encode('ascii','ignore')
 
     def _matchComment(self, line):
         for pattern in self.patterns:
