@@ -37,14 +37,14 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
                 line = self._matchComment(line)
         if not len(line):
             return None
-        return line
+        return line.encode('ascii','xmlcharrefreplace')
 
     def _matchComment(self, line):
         for pattern in self.patterns:
             matched = pattern.match(line)
             if matched:
                 obj = matched.group(1)
-                line = "{0} {1}\n".format(self._reptag, obj.encode('ascii','ignore'))
+                line = "{0} {1}\n".format(self._reptag, obj.encode('ascii','xmlcharrefreplace'))
         return line
 
 # stolen directly from filaswitch, https://github.com/spegelius/filaswitch
