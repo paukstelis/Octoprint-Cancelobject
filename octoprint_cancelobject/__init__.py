@@ -412,9 +412,8 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 
         if self.startskip and len(self.beforegcode) > 0:
             cmd = self._skip_allow(cmd)
-            if cmd:
-                cmd = [cmd]
-                cmd.extend(self.beforegcode)
+            cmd = [cmd]
+            cmd.extend(self.beforegcode)
             self.startskip = False
             return cmd
 
