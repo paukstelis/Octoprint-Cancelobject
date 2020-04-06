@@ -22,7 +22,7 @@ See below for instructions for specific slicers.
 * Objects are automatically tagged with the `;MESH:<stl file name>` tag.
 * Please note that the way that Cura does supports means that ALL supports are placed into an object called `NONMESH`. Cancelling an object will not cancel its supports.
 * Do not use stl files that have non-ASCII characters. This will confuse all current versions of Marlin.
-* Is is a good idea to add `;MESH:ENDGCODE` at the start of your ending gcode script.
+* Is is a good idea to add `;MESH:ENDGCODE` at the start of your ending gcode script (no spaces after `ENDGCODE`!)
 ### PrusaSlicer/Slic3r PE (1.42 alpha and future versions)
 * Enable `Label objects` in the Output section
 * Object names can be modified in the object list in the right panel. Note, this only works for objects that are imported independently, not on copies of objects.
@@ -30,7 +30,7 @@ See below for instructions for specific slicers.
 ### Slic3r
 * Use the current development build snapshot: https://dl.slic3r.org/dev/
 * Enable `Label prints with object ID` in the Output section
-* Add `; printing object ENDGCODE` to the start of the end gcode in the Custom Gcode section.
+* Add `; printing object ENDGCODE` to the start of the end gcode in the Custom Gcode section (no spaces after `ENDGCODE`!)
 ### Simplify3D
 * Create one process for each object or group of models you want to be able to cancel. Assign models to processes.
 * Enable 'Allow zeroing of extrusion distance' setting in Gcode Tab.
