@@ -425,7 +425,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
                 cmd.extend(self.aftergcode)
             if self.trackE:
                 # self._console_logger.info("Update extrusion: {0}".format(self.lastE))
-                cmd.append("G92 E{0}".format(self.lastE))
+                cmd.insert(0,"G92 E{0}".format(self.lastE))
             self.endskip = False
             # self._console_logger.info(cmd)
             return cmd
