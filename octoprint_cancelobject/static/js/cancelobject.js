@@ -34,6 +34,7 @@ $(function() {
             self.aftergcode = self.settings.aftergcode;
             self.allowed = self.settings.allowed;
             self.shownav = self.settings.shownav;
+            self.markers = self.settings.markers;
         };
         
         self.isFileSelected = ko.pureComputed(function() {
@@ -426,7 +427,8 @@ $(function() {
         onViewportChange: function(tform) {
           overXform = tform;
           cancelOverlayContext.setTransform(tform.a, tform.b, tform.c, tform.d, tform.e, tform.f);
-          rendercancelOverlay();   
+          rendercancelOverlay();
+          if (!self.markers) { toggleMarkers(); }  
           // Invoke any previously registered viewport change handler to ensure we don't interfere
           // with other plugins which may also be listening.
           if (previousOnViewportChange)

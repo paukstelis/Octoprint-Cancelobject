@@ -204,9 +204,10 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
             reptag="Object",
             ignored="ENDGCODE,STARTGCODE",
             beforegcode=None,
-            aftergocde=None,
+            aftergcode=None,
             allowed="",
-            shownav=True
+            shownav=True,
+            markers=True,
             )
 
     def get_template_configs(self):
