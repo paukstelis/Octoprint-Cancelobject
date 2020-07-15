@@ -24,6 +24,7 @@ $(function() {
         self.beforegcode = ko.observableArray();
         self.aftergcode = ko.observableArray();
         self.allowed = ko.observableArray();
+        self.markers = ko.observable();
         
         self.onBeforeBinding = function() {
             OctoPrint.get("api/plugin/"+PLUGIN_ID);
@@ -34,7 +35,7 @@ $(function() {
             self.aftergcode = self.settings.aftergcode;
             self.allowed = self.settings.allowed;
             self.shownav = self.settings.shownav;
-            self.markers = self.settings.markers;
+            self.markers(self.settings.markers());
         };
         
         self.isFileSelected = ko.pureComputed(function() {
@@ -428,7 +429,7 @@ $(function() {
           overXform = tform;
           cancelOverlayContext.setTransform(tform.a, tform.b, tform.c, tform.d, tform.e, tform.f);
           rendercancelOverlay();
-          if (!self.markers) { toggleMarkers(); }  
+          if (self.markers() == false) { toggleMarkers(false); }  
           // Invoke any previously registered viewport change handler to ensure we don't interfere
           // with other plugins which may also be listening.
           if (previousOnViewportChange)
