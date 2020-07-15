@@ -50,13 +50,13 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
         #Match SuperSlicer Object information
         info = self.infomatch.match(line)
         if info:
-            objinfo = json.loads(info[9:])
-            line = "{0}info,{1},{2},{3}\n".format(self._reptag, objinfo['id'], objinfo['object_center'][0], objinfo['object_center'][1])
+            objinfo = json.loads(info.group(0)[9:])
+            line = "{0}info {1} X{2} Y{3}\n".format(self._reptag, objinfo['id'], objinfo['object_center'][0], objinfo['object_center'][1])
         
         #Match PrusaSlicer/SuperSlicer stop printing comments
         stop = self.stopmatch.match(line)
         if stop:
-            line = "{0}stop {1}".format(self._reptag, stop.group(1))
+            line = "{0}stop {1}\n".format(self._reptag, stop.group(1))
         return line
 
 # stolen directly from filaswitch, https://github.com/spegelius/filaswitch
@@ -149,7 +149,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         self.object_regex = self._settings.get(["object_regex"])
         self.reptag = self._settings.get(["reptag"])
         self.reptagregex = re.compile("@{0} ([^\t\n\r\f\v]*)".format(self.reptag), re.IGNORECASE)
-        self.objectinforegex = re.compile("@{0}info,([^\t\n\r\f\v]*),([-]*\d+\.*\d*),([-]*\d+\.*\d*)".format(self.reptag), re.IGNORECASE)
+        self.objectinforegex = re.compile("@{0}info ([^\t\n\r\f\v]*) X([-]*\d+\.*\d*) Y([-]*\d+\.*\d*)".format(self.reptag), re.IGNORECASE)
         self.stopobjectregex = re.compile("@{0}stop ([^\t\n\r\f\v]*)".format(self.reptag), re.IGNORECASE)
         self.allowedregex = []
         self.trackregex = [re.compile("G1 .* E(\d*\.\d+)")]
@@ -301,6 +301,26 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
                 self._plugin_manager.send_plugin_message(self._identifier, dict(navBarActive=self.active_object))
 
     def process_line(self, line):
+        if line.startswith("@{0}info".format(self.reptag)):
+            info = self.objectinforegex.match(line)
+            if info:
+                entry = self._get_entry(info.group(1))
+                if entry:
+                    return None
+                else:
+                    # Making the perhaps poor assumption that all objects are known
+                    self.objects_known = True
+                    return dict({"object": info.group(1),
+                                 "id": None,
+                                 "active": False,
+                                 "cancelled": False,
+                                 "ignore": False,
+                                 "max_x": float(info.group(2)),
+                                 "min_x": float(info.group(2)),
+                                 "max_y": float(info.group(3)),
+                                 "min_y": float(info.group(3))
+                    })
+                    
         if line.startswith("@{0}".format(self.reptag)):
             obj = self._check_object(line)
             if obj:
@@ -317,26 +337,8 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
                                  "min_x": 10000,
                                  "max_y": 0,
                                  "min_y": 10000})
-            else:
-                return None
-        if line.startswith("@{0}info".format(self.reptag)):
-            info = line.match(self.objectinforegex)
-            if info:
-                entry = self._get_entry(info.group(1))
-                if entry:
-                    return None
-                else:
-                    # Making the perhaps poor assumption that all objects are known
-                    self.objects_known = True
-                    return dict({"object": info(group(1)),
-                                 "id" : None,
-                                 "active" : False,
-                                 "cancelled" : False,
-                                 "max_x": info(group(2)),
-                                 "min_x": info(group(2)),
-                                 "max_y": info(group(3)),
-                                 "min_y": info(group(3))
-                    })
+        return None
+
 
     def _updateobjects(self):
         if len(self.object_list) > 0:
@@ -427,9 +429,9 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         # Need this or @ commands get caught in skipping block
         #if self._check_object(cmd):
         #    return cmd
-        if cmd.startswith("@")
+        if cmd.startswith("@"):
             return cmd
-            
+
         e_move = None
         e_move = self.parser.is_extrusion_move(cmd)
 
