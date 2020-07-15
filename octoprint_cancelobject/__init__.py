@@ -7,10 +7,10 @@ import octoprint.filemanager
 import octoprint.filemanager.util
 import octoprint.printer
 import octoprint.util
-import re, os, sys
+import re, os, sys, json
 import flask
 import time
-from flask.ext.login import current_user
+from flask_login import current_user
 
 from octoprint.events import Events
 from octoprint.filemanager import FileDestinations
@@ -25,6 +25,8 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
                 regex = re.compile(each["objreg"])
                 self.patterns.append(regex)
         self._reptag = "@{0}".format(reptag)
+        self.infomatch = re.compile("; object:.*")
+        self.stopmatch = re.compile("; stop printing object ([^\t\n\r\f\v]*)")
 
     def process_line(self, line):
         try:
@@ -34,7 +36,7 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
             pass
 
         if line.startswith(";"):
-                line = self._matchComment(line)
+            line = self._matchComment(line)
         if not len(line):
             return None
         return line.encode('ascii','xmlcharrefreplace')
@@ -45,6 +47,16 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
             if matched:
                 obj = matched.group(1)
                 line = "{0} {1}\n".format(self._reptag, obj.encode('ascii','xmlcharrefreplace'))
+        #Match SuperSlicer Object information
+        info = self.infomatch.match(line)
+        if info:
+            objinfo = json.loads(info.group(0)[9:])
+            line = "{0}info {1} X{2} Y{3}\n".format(self._reptag, objinfo['id'], objinfo['object_center'][0], objinfo['object_center'][1])
+        
+        #Match PrusaSlicer/SuperSlicer stop printing comments
+        stop = self.stopmatch.match(line)
+        if stop:
+            line = "{0}stop {1}\n".format(self._reptag, stop.group(1))
         return line
 
 # stolen directly from filaswitch, https://github.com/spegelius/filaswitch
@@ -113,11 +125,11 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
                          octoprint.plugin.EventHandlerPlugin):
 
     def __init__(self):
-        # self._logger = logging.getLogger("octoprint.plugins.cancelobject")
         self.object_list = []
         self.skipping = False
         self.startskip = False
         self.endskip = False
+        self.objects_known = False
         self.active_object = None
         self.object_regex = []
         self.reptag = None
@@ -136,10 +148,12 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         self._console_logger = logging.getLogger("octoprint.plugins.cancelobject")
         self.object_regex = self._settings.get(["object_regex"])
         self.reptag = self._settings.get(["reptag"])
-        self.reptagregex = re.compile("@{0} ([^\t\n\r\f\v]*)".format(self.reptag))
+        self.reptagregex = re.compile("@{0} ([^\t\n\r\f\v]*)".format(self.reptag), re.IGNORECASE)
+        self.objectinforegex = re.compile("@{0}info ([^\t\n\r\f\v]*) X([-]*\d+\.*\d*) Y([-]*\d+\.*\d*)".format(self.reptag), re.IGNORECASE)
+        self.stopobjectregex = re.compile("@{0}stop ([^\t\n\r\f\v]*)".format(self.reptag), re.IGNORECASE)
         self.allowedregex = []
         self.trackregex = [re.compile("G1 .* E(\d*\.\d+)")]
-        print(self.get_asset_folder())
+        
         try:
             self.beforegcode = self._settings.get(["beforegcode"]).split(",")
             # Remove any whitespace entries to avoid sending empty lines
@@ -190,9 +204,10 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
             reptag="Object",
             ignored="ENDGCODE,STARTGCODE",
             beforegcode=None,
-            aftergocde=None,
+            aftergcode=None,
             allowed="",
-            shownav=True
+            shownav=True,
+            markers=True,
             )
 
     def get_template_configs(self):
@@ -230,20 +245,18 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
             self._cancel_object(cancelled)
 
         if command == "objlist":
-            # This is for
             self._updateobjects()
-            # This is for the iOS plugin
             response = flask.make_response(flask.jsonify(dict(list=self.object_list)))
             return response
 
         if command == "resetpos":
-            for obj in self.object_list:
-                obj["max_x"] = 0;
-                obj["max_y"] = 0;
-                obj["min_x"] = 10000;
-                obj["min_y"] = 10000;
+            if not self.objects_known:
+                for obj in self.object_list:
+                    obj["max_x"] = 0;
+                    obj["max_y"] = 0;
+                    obj["min_x"] = 10000;
+                    obj["min_y"] = 10000;
 
-    # Is this really needed?
     def on_api_get(self, request):
         self._updateobjects()
         self._updatedisplay()
@@ -280,6 +293,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 
         elif event in (Events.PRINT_DONE, Events.PRINT_FAILED, Events.PRINT_CANCELLED, Events.FILE_DESELECTED):
             self.object_list = []
+            self.objects_known = False
             self.trackE = False
             self.lastE = 0
             self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
@@ -288,11 +302,29 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
                 self._plugin_manager.send_plugin_message(self._identifier, dict(navBarActive=self.active_object))
 
     def process_line(self, line):
-        if line.startswith("@"):
+        if line.startswith("@{0}info".format(self.reptag)):
+            info = self.objectinforegex.match(line)
+            if info:
+                entry = self._get_entry(info.group(1))
+                if entry:
+                    return None
+                else:
+                    # Making the perhaps poor assumption that all objects are known
+                    self.objects_known = True
+                    return dict({"object": info.group(1),
+                                 "id": None,
+                                 "active": False,
+                                 "cancelled": False,
+                                 "ignore": False,
+                                 "max_x": float(info.group(2)),
+                                 "min_x": float(info.group(2)),
+                                 "max_y": float(info.group(3)),
+                                 "min_y": float(info.group(3))
+                    })
+                    
+        if line.startswith("@{0}".format(self.reptag)):
             obj = self._check_object(line)
             if obj:
-                # maybe it is faster to put them all in a list and uniquify with a set?
-                # look into defaultdict
                 entry = self._get_entry(obj)
                 if entry:
                     return None
@@ -306,12 +338,11 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
                                  "min_x": 10000,
                                  "max_y": 0,
                                  "min_y": 10000})
-            else:
-                return None
+        return None
+
 
     def _updateobjects(self):
         if len(self.object_list) > 0:
-            # update ignore flag based on settings list
             for each in self.object_list:
                 if each["object"] in self.ignored:
                     each["ignore"] = True
@@ -371,15 +402,17 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 
     def check_atcommand(self, comm, phase, command, parameters, tags=None, *args, **kwargs):
 
+        if command == "{0}stop".format(self.reptag) and self.skipping:
+            self.skipping = False
+            return
+
         if command != self.reptag:
             return
 
         entry = self._get_entry(parameters)
-
         if not entry:
             self._console_logger.info("Could not get entry {0}".format(parameters))
             return
-
         if entry["cancelled"]:
             self._console_logger.info("Hit a cancelled object, {0}".format(parameters))
             self.skipstarttime = time.time()
@@ -395,10 +428,11 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 
     def check_queue(self, comm_instance, phase, cmd, cmd_type, gcode, tags, *args, **kwargs):
         # Need this or @ commands get caught in skipping block
-        if self._check_object(cmd):
+        #if self._check_object(cmd):
+        #    return cmd
+        if cmd.startswith("@"):
             return cmd
 
-        # Check if the cmd is an extrusion move
         e_move = None
         e_move = self.parser.is_extrusion_move(cmd)
 
@@ -425,14 +459,13 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
                 cmd.extend(self.aftergcode)
             if self.trackE:
                 # self._console_logger.info("Update extrusion: {0}".format(self.lastE))
-                cmd.append("G92 E{0}".format(self.lastE))
+                cmd.insert(0,"G92 E{0}".format(self.lastE))
             self.endskip = False
             # self._console_logger.info(cmd)
             return cmd
 
         if self.skipping:
             if self.trackE:
-                # check if command moves E at all
                 eaction = None
                 eaction = self.parser.parse_move_args(cmd)
                 if eaction and eaction[3]:
@@ -443,20 +476,16 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
                     self.lastE = 0.0
                 # self._console_logger.info("Reset extrusion")
             if len(self.allowed) > 0:
-                # check to see if cmd is something we should let through
                 cmd = self._skip_allow(cmd)
             else:
                 cmd = None,
 
-        # update objects position if it is an extrusion move:
-        if cmd and e_move and not self.skipping:
+        if cmd and e_move and not self.skipping and not self.objects_known:
             self.update_objects_position(e_move)
 
-        # cycle the extrusion distance
         if e_move:
             self.prevE = e_move[3]
 
-        # your wish is my...
         return cmd
 
     def update_objects_position(self, e_move):

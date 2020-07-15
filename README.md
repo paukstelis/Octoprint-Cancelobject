@@ -2,6 +2,12 @@
 
 This plugin allows the user to interactively cancel objects in gcode based on comment tags added by the slicer.
 See below for instructions for specific slicers.
+### New version 0.4.2, 07/2020
+* Remove case sensitivity for `@Object` tags.
+* Improvements to absolute extrusion tracking.
+* Read object information from SuperSlicer object comments to create `@Objectinfo` tags. This includes object centers so these no longer have to be calculated from extrusion moves.
+* `; stop printing object` comments now generate `@Objectstop` tags which should improve compatibility with extruder wipes 
+
 ### New version 0.3.0, 02/26/2019
 * Gcodeviewer integration. Objects are tagged wtih an orange dot in the Gcodeviewer and can be cancelled directly.
 * Improved tracking of absolute extrusion distances. It is still recommended to use relative extrusion distances in your slicer.
