@@ -5,8 +5,8 @@ See below for instructions for specific slicers.
 ### New version 0.4.2, 07/2020
 * Remove case sensitivity for `@Object` tags.
 * Improvements to absolute extrusion tracking.
-* Read object information from SuperSlicer object comments to create `@Objectinfo` tags. This includes object centers so these no longer have to be calculated from extrusion moves.
-* `; stop printing object` comments now generate `@Objectstop` tags which should improve compatibility with extruder wipes 
+* Read object information from SuperSlicer object comments to create `@Objectinfo` tags. This includes object centers so these no longer have to be calculated from extrusion moves. Special note: as of this moment cloned objects will not give unique positions. 
+* `; stop printing object` comments now generate `@Objectstop` tags which should improve compatibility with extruder wipes in PrusaSlicer/SuperSlicer
 
 ### New version 0.3.0, 02/26/2019
 * Gcodeviewer integration. Objects are tagged wtih an orange dot in the Gcodeviewer and can be cancelled directly.
@@ -29,9 +29,9 @@ See below for instructions for specific slicers.
 * Please note that the way that Cura does supports means that ALL supports are placed into an object called `NONMESH`. Cancelling an object will not cancel its supports.
 * Do not use stl files that have non-ASCII characters. This will confuse all current versions of Marlin.
 * Is is a good idea to add `;MESH:ENDGCODE` at the start of your ending gcode script.
-### PrusaSlicer/Slic3r PE (1.42 alpha and future versions)
+### PrusaSlicer/SuperSlicer
 * Enable `Label objects` in the Output section
-* Object names can be modified in the object list in the right panel. Note, this only works for objects that are imported independently, not on copies of objects.
+* Object names can be modified in the object list in the right panel. Note, this only works for objects that are imported independently, not on copies/clones of objects.
 * For the end custom GCODE, include at the start: `; printing object ENDGCODE`
 ### Slic3r
 * Use the current development build snapshot: https://dl.slic3r.org/dev/
@@ -45,9 +45,9 @@ See below for instructions for specific slicers.
 
 ## Other notes
 * If you upload files directly to your octoprint instance, direct them to the `watched` directory and not the `upload` directory. This will make sure that the plugin processes your gocde and substitutes the `@Object` tag it uses to identify
-* This plugin can only be used when streaming files via USB (no SD card support)
+* This plugin can only be used when streaming files via USB (no SD card support). If you are looking for SD card support, look into Marlin or RepRap firmware M486 commands.
 * It is designed for use with Marlin and Marlin-flavored firmwares. The behaviour with other firmwares is unknown.
-* Gcodeviewer integration requires that the object has to have had some printing moves before its coordinates are known. Use the `Refresh Objects` button to update.
+* Gcodeviewer integration requires that the object has to have had some printing moves before its coordinates are known. Use the `Refresh Objects` button to update. The exception to this is SuperSlicer which includes object information comments in the gcode that include object centers.
 * Some slicers will place first layer extras (brim, raft, etc.) as part of an object. If this throws off the position of the objects in the gcodeviewer you can use the `Reset Objects` button.
 ## Setup
 
