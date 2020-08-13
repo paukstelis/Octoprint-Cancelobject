@@ -45,13 +45,14 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
         for pattern in self.patterns:
             matched = pattern.match(line)
             if matched:
-                obj = matched.group(1)
-                line = "{0} {1}\n".format(self._reptag, obj.encode('ascii','xmlcharrefreplace'))
+                obj = matched.group(1).encode('ascii','xmlcharrefreplace')
+                line = "{0} {1}\n".format(self._reptag, obj.decode('utf-8'))
         #Match SuperSlicer Object information
         info = self.infomatch.match(line)
         if info:
             objinfo = json.loads(info.group(0)[9:])
-            line = "{0}info {1} X{2} Y{3}\n".format(self._reptag, objinfo['id'], objinfo['object_center'][0], objinfo['object_center'][1])
+            objname = objinfo['id'].encode('ascii','xmlcharrefreplace')
+            line = "{0}info {1} X{2} Y{3}\n".format(self._reptag, objname.decode('utf-8'), objinfo['object_center'][0], objinfo['object_center'][1])
         
         #Match PrusaSlicer/SuperSlicer stop printing comments
         stop = self.stopmatch.match(line)
@@ -252,10 +253,10 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         if command == "resetpos":
             if not self.objects_known:
                 for obj in self.object_list:
-                    obj["max_x"] = 0;
-                    obj["max_y"] = 0;
-                    obj["min_x"] = 10000;
-                    obj["min_y"] = 10000;
+                    obj["max_x"] = 0
+                    obj["max_y"] = 0
+                    obj["min_x"] = 10000
+                    obj["min_y"] = 10000
 
     def on_api_get(self, request):
         self._updateobjects()
@@ -292,6 +293,10 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
             self._updateobjects()
 
         elif event in (Events.PRINT_DONE, Events.PRINT_FAILED, Events.PRINT_CANCELLED, Events.FILE_DESELECTED):
+            if self.skipping:
+                self.skipping = False
+                self._printer.set_temperature('bed', 0)
+                self._printer.set_temperature('tool0', 0)
             self.object_list = []
             self.objects_known = False
             self.trackE = False
@@ -430,6 +435,9 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         # Need this or @ commands get caught in skipping block
         #if self._check_object(cmd):
         #    return cmd
+        if not self._printer.is_printing():
+            return cmd
+
         if cmd.startswith("@"):
             return cmd
 
