@@ -57,7 +57,8 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
         #Match PrusaSlicer/SuperSlicer stop printing comments
         stop = self.stopmatch.match(line)
         if stop:
-            line = "{0}stop {1}\n".format(self._reptag, stop.group(1))
+            stopobj = stop.group(1).encode('ascii','xmlcharrefreplace')
+            line = "{0}stop {1}\n".format(self._reptag, stopobj.decode('utf-8'))
         return line
 
 # stolen directly from filaswitch, https://github.com/spegelius/filaswitch
