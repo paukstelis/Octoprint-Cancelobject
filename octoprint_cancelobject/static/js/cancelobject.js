@@ -24,6 +24,7 @@ $(function () {
         self.beforegcode = ko.observableArray();
         self.aftergcode = ko.observableArray();
         self.allowed = ko.observableArray();
+        self.stoptags = ko.observable();
         self.markers = ko.observable();
 
         self.onBeforeBinding = function () {
@@ -35,6 +36,7 @@ $(function () {
             self.aftergcode = self.settings.aftergcode;
             self.allowed = self.settings.allowed;
             self.shownav = self.settings.shownav;
+            self.stoptags = self.settings.stoptags;
             self.markers(self.settings.markers());
         };
 

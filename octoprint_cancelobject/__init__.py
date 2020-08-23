@@ -209,6 +209,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
             aftergcode=None,
             allowed="",
             shownav=True,
+            stoptags=False,
             markers=True,
             )
 
@@ -408,7 +409,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 
     def check_atcommand(self, comm, phase, command, parameters, tags=None, *args, **kwargs):
 
-        if command == "{0}stop".format(self.reptag) and self.skipping:
+        if command == "{0}stop".format(self.reptag) and self._settings.get(['stoptags']) and self.skipping:
             self.skipping = False
             return
 

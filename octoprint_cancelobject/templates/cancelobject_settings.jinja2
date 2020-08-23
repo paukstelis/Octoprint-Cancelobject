@@ -48,8 +48,14 @@
         <p>
         <label class="control-label">{{ _('Show active in NavBar') }}</label>
         <div class="controls">
-        	<i class="icon icon-info-sign" title="Show the active object in NavBar. Note: this switches when object is queued, not when printing move has begun." data-toggle="tooltip"></i>
+        	<i class="icon icon-info-sign" title="Show the active object in NavBar. Note: this switches when object is queued, not when printing move has begun." data-toggle="tooltip"></i><br>
         	<input type="checkbox" data-bind="checked: shownav">
+        </div>
+        <br>
+        <label class="control-label">{{ _('Use object stop tags') }}</label>
+        <div class="controls">
+            <i class="icon icon-info-sign" title="Stop object skipping when stop tags are reached. Keep unchecked if using PrusaSlicer/SuperSlicer and using wipe+retract on layer change" data-toggle="tooltip"></i><br>
+            <input type="checkbox" data-bind="checked: stoptags">
         </div>
         <br>
         <label class="control-label">{{ _('GcodeViewer Marker Default On') }}</label>
