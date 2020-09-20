@@ -24,7 +24,7 @@ See below for instructions for specific slicers.
 * If there are Gcode commands in a cancelled object that should not be skipped, these can be included as a comma delimited list.
 * For all slicers, it is recommended to enable relative extrusion in printer settings.
 
-### Cura (1.3.6 or greater)
+### Cura (3.6.0 or greater)
 * Objects are automatically tagged with the `;MESH:<stl file name>` tag.
 * Please note that the way that Cura does supports means that ALL supports are placed into an object called `NONMESH`. Cancelling an object will not cancel its supports.
 * Do not use stl files that have non-ASCII characters. This will confuse all current versions of Marlin.
@@ -55,3 +55,5 @@ Install via the bundled [Plugin Manager](https://github.com/foosel/OctoPrint/wik
 or manually using this URL:
 
     https://github.com/paukstelis/OctoPrint-Cancelobject/archive/master.zip
+
+Want to support this work? Buy Me a Coffee. https://www.buymeacoffee.com/ppaukstelis
