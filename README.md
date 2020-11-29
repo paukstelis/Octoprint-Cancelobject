@@ -25,6 +25,7 @@ See below for instructions for specific slicers.
 * For all slicers, it is recommended to enable relative extrusion in printer settings.
 
 ### Cura (3.6.0 or greater)
+* Turn combing off! As of right now, Cura writes additional moves after ;MESH tags as part of combing that cause issues.
 * Objects are automatically tagged with the `;MESH:<stl file name>` tag.
 * Please note that the way that Cura does supports means that ALL supports are placed into an object called `NONMESH`. Cancelling an object will not cancel its supports.
 * Do not use stl files that have non-ASCII characters. This will confuse all current versions of Marlin.
