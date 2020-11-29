@@ -159,19 +159,19 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         try:
             self.beforegcode = self._settings.get(["beforegcode"]).split(",")
             # Remove any whitespace entries to avoid sending empty lines
-            self.beforegcode = filter(None, self.beforegcode)
+            self.beforegcode = list(filter(None, self.beforegcode))
         except:
             self._console_logger.info("No beforegcode defined")
         try:
             self.aftergcode = self._settings.get(["aftergcode"]).split(",")
             # Remove any whitespace entries to avoid sending empty lines
-            self.aftergcode = filter(None, self.aftergcode)
+            self.aftergcode = list(filter(None, self.aftergcode))
         except:
             self._console_logger.info("No aftergcode defined")
         try:
             self.ignored = self._settings.get(["ignored"]).split(",")
             # Remove any whitespace entries to avoid sending empty lines
-            self.ignored = filter(None, self.ignored)
+            self.ignored = list(filter(None, self.ignored))
         except:
             self._console_logger.info("No ignored objects defined")
         try:
