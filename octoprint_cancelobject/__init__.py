@@ -39,25 +39,25 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
             line = self._matchComment(line)
         if not len(line):
             return None
-        return line.encode('ascii','xmlcharrefreplace')
+        return line
 
     def _matchComment(self, line):
         for pattern in self.patterns:
             matched = pattern.match(line)
             if matched:
-                obj = matched.group(1).encode('ascii','xmlcharrefreplace')
+                obj = matched.group(1)
                 line = "{0} {1}\n".format(self._reptag, obj.decode('utf-8'))
         #Match SuperSlicer Object information
         info = self.infomatch.match(line)
         if info:
             objinfo = json.loads(info.group(0)[9:])
-            objname = objinfo['id'].encode('ascii','xmlcharrefreplace')
+            objname = objinfo['id']
             line = "{0}info {1} X{2} Y{3}\n".format(self._reptag, objname.decode('utf-8'), objinfo['object_center'][0], objinfo['object_center'][1])
         
         #Match PrusaSlicer/SuperSlicer stop printing comments
         stop = self.stopmatch.match(line)
         if stop:
-            stopobj = stop.group(1).encode('ascii','xmlcharrefreplace')
+            stopobj = stop.group(1)
             line = "{0}stop {1}\n".format(self._reptag, stopobj.decode('utf-8'))
         return line
 
