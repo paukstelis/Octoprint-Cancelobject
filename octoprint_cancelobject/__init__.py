@@ -45,7 +45,7 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
         for pattern in self.patterns:
             matched = pattern.match(line)
             if matched:
-                obj = matched.group(1)
+                obj = matched.group(1).encode('ascii')
                 line = "{0} {1}\n".format(self._reptag, obj.decode('utf-8'))
         #Match SuperSlicer Object information
         info = self.infomatch.match(line)
