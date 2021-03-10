@@ -39,25 +39,25 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
             line = self._matchComment(line)
         if not len(line):
             return None
-        return line.encode('ascii')
+        return line.encode('ascii','xmlcharrefreplace')
 
     def _matchComment(self, line):
         for pattern in self.patterns:
             matched = pattern.match(line)
             if matched:
-                obj = matched.group(1).encode('ascii')
+                obj = matched.group(1).encode('ascii','xmlcharrefreplace')
                 line = "{0} {1}\n".format(self._reptag, obj.decode('utf-8'))
         #Match SuperSlicer Object information
         info = self.infomatch.match(line)
         if info:
             objinfo = json.loads(info.group(0)[9:])
-            objname = objinfo['id'].encode('ascii')
+            objname = objinfo['id'].encode('ascii','xmlcharrefreplace')
             line = "{0}info {1} X{2} Y{3}\n".format(self._reptag, objname.decode('utf-8'), objinfo['object_center'][0], objinfo['object_center'][1])
         
         #Match PrusaSlicer/SuperSlicer stop printing comments
         stop = self.stopmatch.match(line)
         if stop:
-            stopobj = stop.group(1).encode('ascii')
+            stopobj = stop.group(1).encode('ascii','xmlcharrefreplace')
             line = "{0}stop {1}\n".format(self._reptag, stopobj.decode('utf-8'))
         return line
 
@@ -159,19 +159,19 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         try:
             self.beforegcode = self._settings.get(["beforegcode"]).split(",")
             # Remove any whitespace entries to avoid sending empty lines
-            self.beforegcode = list(filter(None, self.beforegcode))
+            self.beforegcode = filter(None, self.beforegcode)
         except:
             self._console_logger.info("No beforegcode defined")
         try:
             self.aftergcode = self._settings.get(["aftergcode"]).split(",")
             # Remove any whitespace entries to avoid sending empty lines
-            self.aftergcode = list(filter(None, self.aftergcode))
+            self.aftergcode = filter(None, self.aftergcode)
         except:
             self._console_logger.info("No aftergcode defined")
         try:
             self.ignored = self._settings.get(["ignored"]).split(",")
             # Remove any whitespace entries to avoid sending empty lines
-            self.ignored = list(filter(None, self.ignored))
+            self.ignored = filter(None, self.ignored)
         except:
             self._console_logger.info("No ignored objects defined")
         try:
@@ -269,7 +269,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         self.initialize()
 
     def on_event(self, event, payload):
-
+        print(event)
         if event in (Events.FILE_SELECTED, Events.PRINT_STARTED):
             self.object_list = []
             self.lastE = 0
@@ -367,6 +367,8 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 
         if self._settings.get(['shownav']):
             self._plugin_manager.send_plugin_message(self._identifier, dict(navBarActive=navmessage))
+        event = Events.PLUGIN_CANCELOBJECT_OBJ_UPDATE
+        self._event_bus.fire(event, payload={"obj": navmessage})
 
     def _check_object(self, line):
         matched = self.reptagregex.match(line)
@@ -391,6 +393,8 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         obj = self._get_entry_byid(cancelled)
         obj["cancelled"] = True
         self._console_logger.info("Object {0} cancelled".format(obj["object"]))
+        event = Events.PLUGIN_CANCELOBJECT_OBJ_CANCEL
+        self._event_bus.fire(event, payload={"obj": obj["object"]})
         if obj["object"] == self.active_object:
             self.skipping = True
 
@@ -549,6 +553,9 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
             )
         )
 
+    def register_custom_events(*args, **kwargs):
+        return ["obj_update","obj_cancel"]
+
 __plugin_name__ = "Cancel Objects"
 __plugin_pythoncompat__ = ">=2.7,<4"
 
@@ -561,5 +568,6 @@ def __plugin_load__():
         "octoprint.filemanager.preprocessor": __plugin_implementation__.modify_file,
         "octoprint.comm.protocol.atcommand.queuing": (__plugin_implementation__.check_atcommand, 1),
         "octoprint.comm.protocol.gcode.queuing": (__plugin_implementation__.check_queue, 2),
+        "octoprint.events.register_custom_events": __plugin_implementation__.register_custom_events,
         "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information
     }
