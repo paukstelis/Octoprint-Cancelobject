@@ -202,7 +202,11 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 
     def get_settings_defaults(self):
         return dict(
-            object_regex=[{"objreg": '; process (.*)'}, {"objreg": ';MESH:(.*)'}, {"objreg": '; printing object (.*)'}],
+            #S3D, Cura, Slic3r/Prusa/SuperSlicer, ideaMaker
+            object_regex=[{"objreg": '; process (.*)'},\
+                          {"objreg": ';MESH:(.*)'},\
+                          {"objreg": '; printing object (.*)'},\ 
+                          {"objreg": ';PRINTING: (.*)'}], 
             reptag="Object",
             ignored="ENDGCODE,STARTGCODE",
             beforegcode=None,
