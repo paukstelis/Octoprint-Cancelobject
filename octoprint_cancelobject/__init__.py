@@ -205,8 +205,8 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
             #S3D, Cura, Slic3r/Prusa/SuperSlicer, ideaMaker
             object_regex=[{"objreg": '; process (.*)'},\
                           {"objreg": ';MESH:(.*)'},\
-                          {"objreg": '; printing object (.*)'},\ 
-                          {"objreg": ';PRINTING: (.*)'}], 
+                          {"objreg": '; printing object (.*)'},\
+                          {"objreg": ';PRINTING: (.*)'}],
             reptag="Object",
             ignored="ENDGCODE,STARTGCODE",
             beforegcode=None,
