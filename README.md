@@ -1,3 +1,4 @@
+Want to support this work? Buy Me a Coffee. https://www.buymeacoffee.com/ppaukstelis
 # OctoPrint-Cancelobject
 
 This plugin allows the user to interactively cancel objects in gcode based on comment tags added by the slicer.
@@ -57,4 +58,4 @@ or manually using this URL:
 
     https://github.com/paukstelis/OctoPrint-Cancelobject/archive/master.zip
 
-Want to support this work? Buy Me a Coffee. https://www.buymeacoffee.com/ppaukstelis
+
