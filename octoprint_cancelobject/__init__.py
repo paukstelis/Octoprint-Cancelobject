@@ -64,11 +64,11 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
 # stolen directly from filaswitch, https://github.com/spegelius/filaswitch
 class Gcode_parser:
     MOVE_RE = re.compile("^G0\s+|^G1\s+")
-    X_COORD_RE = re.compile(".*\s+X([-]*\d+\.*\d*)")
-    Y_COORD_RE = re.compile(".*\s+Y([-]*\d+\.*\d*)")
-    E_COORD_RE = re.compile(".*\s+E([-]*\d+\.*\d*)")
-    Z_COORD_RE = re.compile(".*\s+Z([-]*\d+\.*\d*)")
-    SPEED_VAL_RE = re.compile(".*\s+F(\d+\.*\d*)")
+    X_COORD_RE = re.compile(".*\s+X([-]*\d*\.*\d*)")
+    Y_COORD_RE = re.compile(".*\s+Y([-]*\d*\.*\d*)")
+    E_COORD_RE = re.compile(".*\s+E([-]*\d*\.*\d*)")
+    Z_COORD_RE = re.compile(".*\s+Z([-]*\d*\.*\d*)")
+    SPEED_VAL_RE = re.compile(".*\s+F(\d*\.*\d*)")
 
     def __init__(self):
         self.last_match = None
