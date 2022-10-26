@@ -35,6 +35,7 @@ See below for instructions for specific slicers.
 * Enable `Label objects` in the Output section
 * Object names can be modified in the object list in the right panel. Note, this only works for objects that are imported independently, not on copies/clones of objects.
 * For the end custom GCODE, include at the start: `; printing object ENDGCODE`
+* Newer versions of SuperSlicer should use Stop Object Tags option if Z-lift is NOT used.
 ### Slic3r
 * Use the current development build snapshot: https://dl.slic3r.org/dev/
 * Enable `Label prints with object ID` in the Output section
