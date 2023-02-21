@@ -17,6 +17,7 @@ See below for instructions for specific slicers.
 ![screenshot](./viewer.png)
 ![screenshot](./cancellist.png)
 ## Configuration
+* The plugin requires the standard Gcode viewer. Do not disable.
 ### Settings
 * By default, active object (current object being queued) is displayed in the NavBar.
 * Gcode (comma delimited) can be injected before or after the server reaches a cancelled object.
