@@ -19,7 +19,7 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
     
     def __init__(self, fileBufferedReader, object_regex, reptag):
         super(ModifyComments, self).__init__(fileBufferedReader)
-        self._console_logger = logging.getLogger("octoprint.plugins.cancelobject")
+        #self._console_logger = logging.getLogger("octoprint.plugins.cancelobject")
         self.patterns = []
         for each in object_regex:
             if each["objreg"]:
@@ -73,11 +73,11 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
         matched = self.m486_control.match(line)
         if matched:
             last_m486 = int(matched.group(1))
-            self._console_logger.info("Matched {}".format(last_m486))
+            #self._console_logger.info("Matched {}".format(last_m486))
             if last_m486 != -1:
                 obj_name = self._get_m846(last_m486)
                 if obj_name:
-                    self._console_logger.info(obj_name)
+                    #self._console_logger.info(obj_name)
                     line = line+"{0} {1}\n".format(self._reptag, obj_name)
             else:
                 line = line+"{0}stop\n".format(self._reptag)
@@ -101,7 +101,7 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
             
         self.m486_list.append({"index": index, "name": None})
         self.last_m486 = index
-        self._console_logger.info(self.m486_list)
+        #self._console_logger.info(self.m486_list)
         return None
 
 # stolen directly from filaswitch, https://github.com/spegelius/filaswitch
