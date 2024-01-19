@@ -78,8 +78,10 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
                 obj_name = self._get_m846(last_m486)
                 if obj_name:
                     self._console_logger.info(obj_name)
-                    line = line+"\n{0} {1}\n".format(self._reptag, obj_name)
+                    line = line+"{0} {1}\n".format(self._reptag, obj_name)
                     return line
+            else:
+                line = line+"{0}stop\n".format(self._reptag)
 
         #if we didn't match a control, it is going to be the descriptor
         else:
