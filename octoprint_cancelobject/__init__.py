@@ -74,7 +74,7 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
         if matched:
             last_m486 = int(matched.group(1))
             self._console_logger.info("Matched {}".format(last_m486))
-            if last_m486 > -1:
+            if last_m486 != -1:
                 obj_name = self._get_m846(last_m486)
                 if obj_name:
                     self._console_logger.info(obj_name)
@@ -82,6 +82,7 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
                     return line
             else:
                 line = line+"{0}stop\n".format(self._reptag)
+                return line
 
         #if we didn't match a control, it is going to be the descriptor
         else:
@@ -92,7 +93,7 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
                     if each["index"] == self.last_m486:
                         each["name"] = descriptor.group(1)
                         self.last_m486 = None   
-        return line 
+            return line 
             
     def _get_m846(self, index):
         for each in self.m486_list:
