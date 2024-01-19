@@ -28,7 +28,7 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
         self._reptag = "@{0}".format(reptag)
         self.infomatch = re.compile("; object:.*")
         self.stopmatch = re.compile("; stop printing object ([^\t\n\r\f\v]*)")
-        self.m486_control = re.compile("M486 S(\d+)|$") #matches end of line after digits
+        self.m486_control = re.compile("M486 S([-]*\d+)|$") #matches end of line after digits
         self.m486_descriptor = re.compile("M486 (.*)|$")
         self.last_m486 = None
         self.m486_list = []
@@ -78,7 +78,7 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
                 obj_name = self._get_m846(last_m486)
                 if obj_name:
                     self._console_logger.info(obj_name)
-                    line = "{0} {1}\n".format(self._reptag, obj_name)
+                    line = line+"\n{0} {1}\n".format(self._reptag, obj_name)
                     return line
 
         #if we didn't match a control, it is going to be the descriptor
