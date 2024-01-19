@@ -28,7 +28,7 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
         self._reptag = "@{0}".format(reptag)
         self.infomatch = re.compile("; object:.*")
         self.stopmatch = re.compile("; stop printing object ([^\t\n\r\f\v]*)")
-        self.m486_control = re.compile("M486 S([-]\d+)|$") #matches end of line after digits
+        self.m486_control = re.compile("M486 S(\d+)|$") #matches end of line after digits
         self.m486_descriptor = re.compile("M486 (.*)|$")
         self.last_m486 = None
         self.m486_list = []
