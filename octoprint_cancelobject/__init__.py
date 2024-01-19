@@ -16,9 +16,10 @@ from octoprint.events import Events
 from octoprint.filemanager import FileDestinations
 
 class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
-
+    
     def __init__(self, fileBufferedReader, object_regex, reptag):
         super(ModifyComments, self).__init__(fileBufferedReader)
+        self._console_logger = logging.getLogger("octoprint.plugins.cancelobject")
         self.patterns = []
         for each in object_regex:
             if each["objreg"]:
