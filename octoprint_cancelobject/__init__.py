@@ -77,7 +77,7 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
                 obj_name = self._get_m846(last_m486)
                 if obj_name:
                     print(obj_name)
-                    line = line+"\{0} {1}\n".format(self._reptag, obj_name)
+                    line = line+"\n{0} {1}\n".format(self._reptag, obj_name)
                     return line
 
         #if we didn't match a control, it is going to be the descriptor
@@ -95,10 +95,10 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
         for each in self.m486_list:
             if each["index"] == index:
                 return each["name"]
-            else:
-                self.m486_list.append({"index": index, "name": None})
-                self.last_m486 = index
-                return None
+            
+        self.m486_list.append({"index": index, "name": None})
+        self.last_m486 = index
+        return None
 
 # stolen directly from filaswitch, https://github.com/spegelius/filaswitch
 class Gcode_parser:
