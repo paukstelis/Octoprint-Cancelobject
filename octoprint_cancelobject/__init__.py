@@ -79,10 +79,9 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
                 if obj_name:
                     self._console_logger.info(obj_name)
                     line = line+"{0} {1}\n".format(self._reptag, obj_name)
-                    return line
             else:
                 line = line+"{0}stop\n".format(self._reptag)
-                return line
+                
 
         #if we didn't match a control, it is going to be the descriptor
         else:
@@ -93,7 +92,7 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
                     if each["index"] == self.last_m486:
                         each["name"] = descriptor.group(1)
                         self.last_m486 = None   
-            return line 
+        return line 
             
     def _get_m846(self, index):
         for each in self.m486_list:
@@ -102,6 +101,7 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
             
         self.m486_list.append({"index": index, "name": None})
         self.last_m486 = index
+        self._console_logger.info(self.m486_list)
         return None
 
 # stolen directly from filaswitch, https://github.com/spegelius/filaswitch
