@@ -73,7 +73,7 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
         matched = self.m486_control.match(line)
         if matched:
             last_m486 = int(matched.group(1))
-            self._console_logger("Matched {}".format(last_m486))
+            self._console_logger.info("Matched {}".format(last_m486))
             if last_m486 > -1:
                 obj_name = self._get_m846(last_m486)
                 if obj_name:
