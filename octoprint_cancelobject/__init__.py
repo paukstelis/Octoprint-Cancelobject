@@ -27,6 +27,10 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
         self._reptag = "@{0}".format(reptag)
         self.infomatch = re.compile("; object:.*")
         self.stopmatch = re.compile("; stop printing object ([^\t\n\r\f\v]*)")
+        self.m486_control = re.compile("M486 S([-]\d+)|$") #matches end of line after digits
+        self.m486_descriptor = re.compile("M486 (.*)|$")
+        self.last_m486 = None
+        self.m486_list = []
 
     def process_line(self, line):
         try:
@@ -37,6 +41,8 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
 
         if line.startswith(";"):
             line = self._matchComment(line)
+        if line.startswith("M486"):
+            line = self._match_m486(line)
         if not len(line):
             return None
         return line.encode('ascii','xmlcharrefreplace')
@@ -60,6 +66,38 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
             stopobj = stop.group(1).encode('ascii','xmlcharrefreplace')
             line = "{0}stop {1}\n".format(self._reptag, stopobj.decode('utf-8'))
         return line
+    
+    def _match_m486(self, line):
+        #Try to match control values first
+        matched = self.m486_control.match(line)
+        if matched:
+            last_m486 = int(matched.group(1))
+            print("Matched {}".format(last_m486))
+            if last_m486 > -1:
+                obj_name = self._get_m846(last_m486)
+                if obj_name:
+                    print(obj_name)
+                    line = line+"\{0} {1}\n".format(self._reptag, obj_name)
+                    return line
+
+        #if we didn't match a control, it is going to be the descriptor
+        else:
+            descriptor = self.m486_descriptor.match(line)
+            if descriptor and self.last_m486:
+                for each in self.m486_list:
+                    #each.update((name,descriptor.group(1)) for name, index in each.iteritems() if index == self.last_m486)
+                    if each["index"] == self.last_m486:
+                        each["name"] = descriptor.group(1)
+                        self.last_m486 = None    
+            
+    def _get_m846(self, index):
+        for each in self.m486_list:
+            if each["index"] == index:
+                return each["name"]
+            else:
+                self.m486_list.append({"index": index, "name": None})
+                self.last_m486 = index
+                return None
 
 # stolen directly from filaswitch, https://github.com/spegelius/filaswitch
 class Gcode_parser:
@@ -72,7 +110,7 @@ class Gcode_parser:
 
     def __init__(self):
         self.last_match = None
-
+        
     def is_extrusion_move(self, line):
         """
         Match given line against extrusion move regex
