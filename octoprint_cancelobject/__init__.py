@@ -88,7 +88,8 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
                     #each.update((name,descriptor.group(1)) for name, index in each.iteritems() if index == self.last_m486)
                     if each["index"] == self.last_m486:
                         each["name"] = descriptor.group(1)
-                        self.last_m486 = None    
+                        self.last_m486 = None   
+        return line 
             
     def _get_m846(self, index):
         for each in self.m486_list:
