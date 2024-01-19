@@ -86,7 +86,7 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
         #if we didn't match a control, it is going to be the descriptor
         else:
             descriptor = self.m486_descriptor.match(line)
-            if descriptor and self.last_m486:
+            if descriptor:
                 for each in self.m486_list:
                     #each.update((name,descriptor.group(1)) for name, index in each.iteritems() if index == self.last_m486)
                     if each["index"] == self.last_m486:
