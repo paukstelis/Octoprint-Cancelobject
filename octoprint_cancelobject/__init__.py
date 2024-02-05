@@ -40,7 +40,7 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
         except (UnicodeDecodeError, AttributeError):
             pass
 
-        if line.startswith(";"):
+        if line.startswith(";") or line.startswith("("):
             line = self._matchComment(line)
         if line.startswith("M486"):
             line = self._match_m486(line)
@@ -245,11 +245,12 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 
     def get_settings_defaults(self):
         return dict(
-            #S3D, Cura, Slic3r/Prusa/SuperSlicer, ideaMaker
+            #S3D, Cura, Slic3r/Prusa/SuperSlicer, ideaMaker, EstlCam
             object_regex=[{"objreg": '; process (.*)'},\
                           {"objreg": ';MESH:(.*)'},\
                           {"objreg": '; printing object (.*)'},\
-                          {"objreg": ';PRINTING: (.*)'}],
+                          {"objreg": ';PRINTING: (.*)'},\
+                          {"objreg": '(No. (.*)'}]
             reptag="Object",
             ignored="ENDGCODE,STARTGCODE",
             beforegcode=None,
