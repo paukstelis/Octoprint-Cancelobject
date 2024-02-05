@@ -250,7 +250,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
                           {"objreg": ';MESH:(.*)'},\
                           {"objreg": '; printing object (.*)'},\
                           {"objreg": ';PRINTING: (.*)'},\
-                          {"objreg": '\(No. (.*)'}]
+                          {"objreg": '\(No. (.*)\)'}],
             reptag="Object",
             ignored="ENDGCODE,STARTGCODE",
             beforegcode=None,
