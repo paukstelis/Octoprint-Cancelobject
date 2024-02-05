@@ -3,6 +3,9 @@ Want to support this work? Buy Me a Coffee. https://www.buymeacoffee.com/ppaukst
 
 This plugin allows the user to interactively cancel objects in gcode based on comment tags added by the slicer.
 See below for instructions for specific slicers.
+### New version 0.5.0, 01/2024
+* Parse M486 commands and add necessary `@` commands. This circumvents forcing PrusaSlicer to use `OctoPrint` exclusively in the Label Objects output. There may be issues with other slicers that have not yet been tested.
+
 ### New version 0.4.2, 07/2020
 * Remove case sensitivity for `@Object` tags.
 * Improvements to absolute extrusion tracking.
