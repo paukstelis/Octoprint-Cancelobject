@@ -506,7 +506,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
             cmd = self._skip_allow(cmd)
             if cmd:
                 cmd = [cmd]
-                cmd.extend(self.beforegcode)
+                cmd.insert(0, self.beforegcode)
             self.startskip = False
             return cmd
 
@@ -514,7 +514,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
             self._console_logger.info("Took {0} to skip block".format(time.time() - self.skipstarttime))
             cmd = [cmd]
             if len(self.aftergcode) > 0:
-                cmd.extend(self.aftergcode)
+                cmd.insert(0, self.aftergcode)
             if self.trackE:
                 # self._console_logger.info("Update extrusion: {0}".format(self.lastE))
                 cmd.insert(0,"G92 E{0}".format(self.lastE))
