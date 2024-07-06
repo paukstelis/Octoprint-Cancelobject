@@ -24,7 +24,7 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
         for each in object_regex:
             if each["objreg"]:
                 objreg = each["objreg"]
-                regex = re.compile(r"{objreg}")
+                regex = re.compile(rf"{objreg}")
                 self.patterns.append(regex)
         self._reptag = rf"@{reptag}"
         self.infomatch = re.compile(r"; object:.*")
