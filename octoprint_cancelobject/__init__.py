@@ -23,13 +23,14 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
         self.patterns = []
         for each in object_regex:
             if each["objreg"]:
-                regex = re.compile(each["objreg"])
+                objreg = each["objreg"]
+                regex = re.compile(rf"{objreg}")
                 self.patterns.append(regex)
-        self._reptag = "@{0}".format(reptag)
-        self.infomatch = re.compile("; object:.*")
-        self.stopmatch = re.compile("; stop printing object ([^\t\n\r\f\v]*)")
-        self.m486_control = re.compile("M486 S([-]*\d+)|$") #matches end of line after digits
-        self.m486_descriptor = re.compile("M486 (.*)|$")
+        self._reptag = rf"@{reptag}"
+        self.infomatch = re.compile(r"; object:.*")
+        self.stopmatch = re.compile(r"; stop printing object ([^\t\n\r\f\v]*)")
+        self.m486_control = re.compile(r"M486 S([-]*\d+)|$") #matches end of line after digits
+        self.m486_descriptor = re.compile(r"M486 (.*)|$")
         self.last_m486 = None
         self.m486_list = []
 
@@ -106,12 +107,12 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
 
 # stolen directly from filaswitch, https://github.com/spegelius/filaswitch
 class Gcode_parser:
-    MOVE_RE = re.compile("^G0\s+|^G1\s+")
-    X_COORD_RE = re.compile(".*\s+X([-]*\d*\.*\d*)")
-    Y_COORD_RE = re.compile(".*\s+Y([-]*\d*\.*\d*)")
-    E_COORD_RE = re.compile(".*\s+E([-]*\d*\.*\d*)")
-    Z_COORD_RE = re.compile(".*\s+Z([-]*\d*\.*\d*)")
-    SPEED_VAL_RE = re.compile(".*\s+F(\d*\.*\d*)")
+    MOVE_RE = re.compile(r"^G0\s+|^G1\s+")
+    X_COORD_RE = re.compile(r".*\s+X([-]*\d*\.*\d*)")
+    Y_COORD_RE = re.compile(r".*\s+Y([-]*\d*\.*\d*)")
+    E_COORD_RE = re.compile(r".*\s+E([-]*\d*\.*\d*)")
+    Z_COORD_RE = re.compile(r".*\s+Z([-]*\d*\.*\d*)")
+    SPEED_VAL_RE = re.compile(r".*\s+F(\d*\.*\d*)")
 
     def __init__(self):
         self.last_match = None
@@ -193,11 +194,11 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         self._console_logger = logging.getLogger("octoprint.plugins.cancelobject")
         self.object_regex = self._settings.get(["object_regex"])
         self.reptag = self._settings.get(["reptag"])
-        self.reptagregex = re.compile("@{0} ([^\t\n\r\f\v]*)".format(self.reptag), re.IGNORECASE)
-        self.objectinforegex = re.compile("@{0}info ([^\t\n\r\f\v]*) X([-]*\d+\.*\d*) Y([-]*\d+\.*\d*)".format(self.reptag), re.IGNORECASE)
-        self.stopobjectregex = re.compile("@{0}stop ([^\t\n\r\f\v]*)".format(self.reptag), re.IGNORECASE)
+        self.reptagregex = re.compile(r"@{0} ([^\t\n\r\f\v]*)".format(self.reptag), re.IGNORECASE)
+        self.objectinforegex = re.compile(r"@{0}info ([^\t\n\r\f\v]*) X([-]*\d+\.*\d*) Y([-]*\d+\.*\d*)".format(self.reptag), re.IGNORECASE)
+        self.stopobjectregex = re.compile(r"@{0}stop ([^\t\n\r\f\v]*)".format(self.reptag), re.IGNORECASE)
         self.allowedregex = []
-        self.trackregex = [re.compile("G1 .* E(\d*\.\d+)")]
+        self.trackregex = [re.compile(r"G1 .* E(\d*\.\d+)")]
         
         try:
             self.beforegcode = self._settings.get(["beforegcode"]).split(",")
@@ -222,7 +223,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
             # Remove any whitespace entries
             self.allowed = list(filter(None, self.allowed))
             for allow in self.allowed:
-                regex = re.compile(allow)
+                regex = re.compile(rf"{allow}")
                 self.allowedregex.append(regex)
         except:
             self._console_logger.info("No allowed GCODE defined")
