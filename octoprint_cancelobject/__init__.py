@@ -16,7 +16,7 @@ from octoprint.events import Events
 from octoprint.filemanager import FileDestinations
 
 class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
-    
+
     def __init__(self, fileBufferedReader, object_regex, reptag):
         super(ModifyComments, self).__init__(fileBufferedReader)
         #self._console_logger = logging.getLogger("octoprint.plugins.cancelobject")
@@ -61,14 +61,14 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
             objinfo = json.loads(info.group(0)[9:])
             objname = objinfo['id'].encode('ascii','xmlcharrefreplace')
             line = "{0}info {1} X{2} Y{3}\n".format(self._reptag, objname.decode('utf-8'), objinfo['object_center'][0], objinfo['object_center'][1])
-        
+
         #Match PrusaSlicer/SuperSlicer stop printing comments
         stop = self.stopmatch.match(line)
         if stop:
             stopobj = stop.group(1).encode('ascii','xmlcharrefreplace')
             line = "{0}stop {1}\n".format(self._reptag, stopobj.decode('utf-8'))
         return line
-    
+
     def _match_m486(self, line):
         #Try to match control values first
         matched = self.m486_control.match(line)
@@ -82,7 +82,7 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
                     line = line+"{0} {1}\n".format(self._reptag, obj_name)
             else:
                 line = line+"{0}stop\n".format(self._reptag)
-                
+
 
         #if we didn't match a control, it is going to be the descriptor
         else:
@@ -92,14 +92,14 @@ class ModifyComments(octoprint.filemanager.util.LineProcessorStream):
                     #each.update((name,descriptor.group(1)) for name, index in each.iteritems() if index == self.last_m486)
                     if each["index"] == self.last_m486:
                         each["name"] = descriptor.group(1)
-                        self.last_m486 = None   
-        return line 
-            
+                        self.last_m486 = None
+        return line
+
     def _get_m846(self, index):
         for each in self.m486_list:
             if each["index"] == index:
                 return each["name"]
-            
+
         self.m486_list.append({"index": index, "name": None})
         self.last_m486 = index
         #self._console_logger.info(self.m486_list)
@@ -116,7 +116,7 @@ class Gcode_parser:
 
     def __init__(self):
         self.last_match = None
-        
+
     def is_extrusion_move(self, line):
         """
         Match given line against extrusion move regex
@@ -199,7 +199,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         self.stopobjectregex = re.compile(r"@{0}stop ([^\t\n\r\f\v]*)".format(self.reptag), re.IGNORECASE)
         self.allowedregex = []
         self.trackregex = [re.compile(r"G1 .* E(\d*\.\d+)")]
-        
+
         try:
             self.beforegcode = self._settings.get(["beforegcode"]).split(",")
             # Remove any whitespace entries to avoid sending empty lines
@@ -376,7 +376,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
                                  "max_y": float(info.group(3)),
                                  "min_y": float(info.group(3))
                     })
-                    
+
         if line.startswith("@{0}".format(self.reptag)):
             obj = self._check_object(line)
             if obj:
@@ -402,6 +402,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
                 if each["object"] in self.ignored:
                     each["ignore"] = True
         self._plugin_manager.send_plugin_message(self._identifier, dict(objects=self.object_list))
+        self._event_bus.fire(Events.PLUGIN_CANCELOBJECT_OBJECT_LIST, payload= dict(object_list=self.object_list))
 
     def _updatedisplay(self):
         navmessage = ""
@@ -410,6 +411,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
                 navmessage = str(self.active_object)
                 obj = self._get_entry(self.active_object)
                 self._plugin_manager.send_plugin_message(self._identifier, dict(ActiveID=obj["id"]))
+                self._event_bus.fire(Events.PLUGIN_CANCELOBJECT_CURRENT_OBJECT, payload=dict(current_object=obj))
             except:
                 self._console_logger.info("No active object id!")
 
@@ -439,6 +441,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         obj = self._get_entry_byid(cancelled)
         obj["cancelled"] = True
         self._console_logger.info("Object {0} cancelled".format(obj["object"]))
+        self._event_bus.fire(Events.PLUGIN_CANCELOBJECT_OBJECT_CANCELLED, payload=dict(object_cancelled=obj))
         if obj["object"] == self.active_object:
             self.skipping = True
 
@@ -580,6 +583,9 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         except Exception as err:
             self._console_logger.error("Error updating object position: " + str(err))
 
+    def register_custom_events(*args, **kwargs):
+        return ["object_list", "object_cancelled", "current_object"]
+
     def get_update_information(self):
         return dict(
             cancelobject=dict(
@@ -609,5 +615,6 @@ def __plugin_load__():
         "octoprint.filemanager.preprocessor": __plugin_implementation__.modify_file,
         "octoprint.comm.protocol.atcommand.queuing": (__plugin_implementation__.check_atcommand, 1),
         "octoprint.comm.protocol.gcode.queuing": (__plugin_implementation__.check_queue, 2),
+        "octoprint.events.register_custom_events": __plugin_implementation__.register_custom_events,
         "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information
     }
