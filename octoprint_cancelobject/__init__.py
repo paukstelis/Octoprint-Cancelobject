@@ -293,7 +293,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 
         if command == "cancel":
             cancelled = data["cancelled"]
-            self._cancel_object(cancelled)
+            self.cancel_object(cancelled)
 
         if command == "objlist":
             self._updateobjects()
@@ -437,8 +437,11 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
                 return o
         return None
 
-    def _cancel_object(self, cancelled):
+    def cancel_object(self, cancelled):
         obj = self._get_entry_byid(cancelled)
+        if obj is None:
+            self._console_logger.info("Could not find object with id {0}".format(cancelled))
+            return
         obj["cancelled"] = True
         self._console_logger.info("Object {0} cancelled".format(obj["object"]))
         self._event_bus.fire(Events.PLUGIN_CANCELOBJECT_OBJECT_CANCELLED, payload=dict(object_cancelled=obj))
@@ -617,4 +620,9 @@ def __plugin_load__():
         "octoprint.comm.protocol.gcode.queuing": (__plugin_implementation__.check_queue, 2),
         "octoprint.events.register_custom_events": __plugin_implementation__.register_custom_events,
         "octoprint.plugin.softwareupdate.check_config": __plugin_implementation__.get_update_information
+    }
+
+    global __plugin_helpers__
+    __plugin_helpers__ = {
+        "cancel_object": __plugin_implementation__.cancel_object
     }
