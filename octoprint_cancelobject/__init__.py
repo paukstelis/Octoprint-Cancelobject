@@ -288,8 +288,8 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
     def on_api_command(self, command, data):
         import flask
 
-        if current_user.is_anonymous():
-            return "Insufficient rights", 403
+        #if current_user.is_anonymous():
+        #    return "Insufficient rights", 403
 
         if command == "cancel":
             cancelled = data["cancelled"]
