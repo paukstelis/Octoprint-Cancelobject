@@ -264,6 +264,9 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
             dict(type="settings", name="Cancel Objects", custom_bindings=True)
         ]
 
+    def is_template_autoescaped(self):
+        return True
+
     def modify_file(self, path, file_object, blinks=None, printer_profile=None, allow_overwrite=True, *args, **kwargs):
         if not octoprint.filemanager.valid_file_type(path, type="gcode"):
             return file_object
