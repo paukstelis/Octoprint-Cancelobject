@@ -181,7 +181,7 @@ $(function () {
         function confirm_cancel(objid, objname) {
             showConfirmationDialog({
                 title: gettext("Are you sure?"),
-                message: gettext("<p><strong>You are about to cancel object " + objname + ".</strong>"),
+                message: gettext("<p><strong>You are about to cancel object " + _.escape(objname) + ".</strong>"),
                 question: gettext("Are you sure you want to do this?"),
                 cancel: gettext("Exit"),
                 proceed: gettext("Yes, Cancel It"),
