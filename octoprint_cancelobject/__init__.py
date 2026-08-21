@@ -270,8 +270,6 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
     def modify_file(self, path, file_object, blinks=None, printer_profile=None, allow_overwrite=True, *args, **kwargs):
         if not octoprint.filemanager.valid_file_type(path, type="gcode"):
             return file_object
-        import os
-        name, _ = os.path.splitext(file_object.filename)
         modfile = octoprint.filemanager.util.StreamWrapper(file_object.filename,
                                                            ModifyComments(file_object.stream(), self.object_regex,
                                                                           self.reptag))
