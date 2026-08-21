@@ -5,12 +5,10 @@ import logging.handlers
 import octoprint.plugin
 import octoprint.filemanager
 import octoprint.filemanager.util
-import octoprint.printer
-import octoprint.util
-import re, os, sys, json
+import re
+import json
 import flask
 import time
-from flask_login import current_user
 
 from octoprint.events import Events
 from octoprint.filemanager import FileDestinations
@@ -286,8 +284,6 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         )
 
     def on_api_command(self, command, data):
-        import flask
-
         #if current_user.is_anonymous():
         #    return "Insufficient rights", 403
 
