@@ -278,6 +278,9 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 
         return modfile
 
+    def is_api_protected(self):
+        return True
+
     def get_api_commands(self):
         return dict(
             skip=[],
@@ -287,9 +290,6 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         )
 
     def on_api_command(self, command, data):
-        #if current_user.is_anonymous():
-        #    return "Insufficient rights", 403
-
         if command == "cancel":
             cancelled = data["cancelled"]
             self.cancel_object(cancelled)
