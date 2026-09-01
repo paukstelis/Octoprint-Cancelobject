@@ -1,0 +1,42 @@
+[build-system]
+requires = [
+    "setuptools>=68",
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "OctoPrint-Cancelobject"
+version = "0.6.4"
+description = "Cancellation of single objects based on gcode comments"
+authors = [
+    { name = "Paul Paukstelis", email = "shocksofmighty@gmail.com" },
+]
+requires-python = ">=3.7,<4"
+dependencies = []
+dynamic = [
+    "license",
+]
+
+[project.entry-points."octoprint.plugin"]
+cancelobject = "octoprint_cancelobject"
+
+[project.urls]
+Homepage = "https://github.com/paukstelis/OctoPrint-Cancelobject"
+
+[project.optional-dependencies]
+develop = [
+    "go-task-bin",
+]
+
+[project.readme]
+file = "README.md"
+content-type = "text/markdown"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = [
+    "octoprint_cancelobject",
+    "octoprint_cancelobject.*",
+]

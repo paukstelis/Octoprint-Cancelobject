@@ -5,12 +5,10 @@ import logging.handlers
 import octoprint.plugin
 import octoprint.filemanager
 import octoprint.filemanager.util
-import octoprint.printer
-import octoprint.util
-import re, os, sys, json
+import re
+import json
 import flask
 import time
-from flask_login import current_user
 
 from octoprint.events import Events
 from octoprint.filemanager import FileDestinations
@@ -266,16 +264,20 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
             dict(type="settings", name="Cancel Objects", custom_bindings=True)
         ]
 
+    def is_template_autoescaped(self):
+        return True
+
     def modify_file(self, path, file_object, blinks=None, printer_profile=None, allow_overwrite=True, *args, **kwargs):
         if not octoprint.filemanager.valid_file_type(path, type="gcode"):
             return file_object
-        import os
-        name, _ = os.path.splitext(file_object.filename)
         modfile = octoprint.filemanager.util.StreamWrapper(file_object.filename,
                                                            ModifyComments(file_object.stream(), self.object_regex,
                                                                           self.reptag))
 
         return modfile
+
+    def is_api_protected(self):
+        return True
 
     def get_api_commands(self):
         return dict(
@@ -286,11 +288,6 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         )
 
     def on_api_command(self, command, data):
-        import flask
-
-        if current_user.is_anonymous():
-            return "Insufficient rights", 403
-
         if command == "cancel":
             cancelled = data["cancelled"]
             self.cancel_object(cancelled)
