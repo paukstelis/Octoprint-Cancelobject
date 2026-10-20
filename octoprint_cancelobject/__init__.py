@@ -187,6 +187,16 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         self.skipstarttime = 0.0
         self.parser = Gcode_parser()
         self._console_logger = None
+        self._reset_position_tracking()
+
+    def _reset_position_tracking(self):
+        # Position as the slicer expects it (follows every line of the file, including skipped ones)
+        self.file_pos = {"x": None, "y": None, "z": None, "f": None}
+        # Position the printer actually got sent (skipped lines excluded)
+        self.sent_pos = {"x": None, "y": None, "z": None, "e": 0.0}
+        self.relative_positioning = False
+        # Highest Z at which material was actually extruded, i.e. the tallest printed part on the bed
+        self.max_printed_z = None
 
     def initialize(self):
         self._console_logger = logging.getLogger("octoprint.plugins.cancelobject")
@@ -257,6 +267,10 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
             shownav=True,
             stoptags=False,
             markers=True,
+            safe_travel=True,
+            safe_travel_clearance=2.0,
+            safe_travel_z_feed=600,
+            safe_travel_xy_feed=6000,
             )
 
     def get_template_configs(self):
@@ -318,6 +332,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         if event in (Events.FILE_SELECTED, Events.PRINT_STARTED):
             self.object_list = []
             self.lastE = 0
+            self._reset_position_tracking()
             selectedFile = payload.get("file", "")
             if not selectedFile:
                 path = payload.get("path", "")
@@ -494,6 +509,14 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
         if cmd.startswith("@"):
             return cmd
 
+        result = self._process_queue(cmd)
+        # Order matters: safe travel moves injected by _process_queue are based on the
+        # file position *before* this command, and the sent position includes them.
+        self._track_file_position(cmd)
+        self._track_sent_position(result)
+        return result
+
+    def _process_queue(self, cmd):
         e_move = None
         e_move = self.parser.is_extrusion_move(cmd)
 
@@ -515,7 +538,7 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
 
         if self.endskip:
             self._console_logger.info("Took {0} to skip block".format(time.time() - self.skipstarttime))
-            cmd = [cmd]
+            cmd = self._safe_travel_gcode() + [cmd]
             if len(self.aftergcode) > 0:
                 cmd.extend(self.aftergcode)
             if self.trackE:
@@ -582,6 +605,135 @@ class CancelobjectPlugin(octoprint.plugin.StartupPlugin,
                         obj["min_y"] = e_move[1]
         except Exception as err:
             self._console_logger.error("Error updating object position: " + str(err))
+
+    def _parse_move(self, cmd):
+        try:
+            return self.parser.parse_move_args(cmd)
+        except ValueError:
+            return None
+
+    def _track_file_position(self, cmd):
+        # Follow every line of the file, skipped or not, so we know where the slicer
+        # expects the nozzle to be when printing resumes after a cancelled object.
+        if cmd.startswith("G90"):
+            self.relative_positioning = False
+        elif cmd.startswith("G91"):
+            self.relative_positioning = True
+        elif cmd.startswith("G28"):
+            self.file_pos.update(x=None, y=None, z=None)
+        elif cmd.startswith("G92"):
+            for axis, value in zip(("x", "y", "z"), self._parse_g92(cmd)):
+                if value is not None:
+                    self.file_pos[axis] = value
+        else:
+            move = self._parse_move(cmd)
+            if move:
+                x, y, z, e, speed = move
+                if self.relative_positioning:
+                    self.file_pos.update(x=None, y=None, z=None)
+                else:
+                    if x is not None:
+                        self.file_pos["x"] = x
+                    if y is not None:
+                        self.file_pos["y"] = y
+                    if z is not None:
+                        self.file_pos["z"] = z
+                if speed is not None:
+                    self.file_pos["f"] = speed
+
+    def _parse_g92(self, cmd):
+        values = []
+        for axis in ("X", "Y", "Z", "E"):
+            m = re.search(r"\s{0}([-]*\d*\.*\d*)".format(axis), cmd)
+            try:
+                values.append(float(m.group(1)) if m else None)
+            except ValueError:
+                values.append(None)
+        return values
+
+    def _track_sent_position(self, result):
+        # Follow the commands that actually go to the printer and remember the highest Z
+        # at which material was really deposited.
+        if isinstance(result, str):
+            cmds = [result]
+        elif isinstance(result, list):
+            cmds = [c for c in result if isinstance(c, str)]
+        else:
+            cmds = []
+
+        for cmd in cmds:
+            if cmd.startswith("G28"):
+                self.sent_pos.update(x=None, y=None, z=None)
+            elif cmd.startswith("G92"):
+                for axis, value in zip(("x", "y", "z", "e"), self._parse_g92(cmd)):
+                    if value is not None:
+                        self.sent_pos[axis] = value
+            else:
+                move = self._parse_move(cmd)
+                if not move:
+                    continue
+                x, y, z, e, speed = move
+                if self.relative_positioning:
+                    self.sent_pos.update(x=None, y=None, z=None)
+                else:
+                    if x is not None:
+                        self.sent_pos["x"] = x
+                    if y is not None:
+                        self.sent_pos["y"] = y
+                    if z is not None:
+                        self.sent_pos["z"] = z
+                if e is None:
+                    continue
+                if self.trackE:
+                    extruding = e > self.sent_pos["e"]
+                    self.sent_pos["e"] = e
+                else:
+                    extruding = e > 0
+                if extruding and (x is not None or y is not None) and self.sent_pos["z"] is not None:
+                    if self.max_printed_z is None or self.sent_pos["z"] > self.max_printed_z:
+                        self.max_printed_z = self.sent_pos["z"]
+
+    def _safe_travel_gcode(self):
+        # While skipping, the slicer's Z lifts and travel moves are dropped as well, so the
+        # nozzle is still sitting at the height of the cancelled object. In sequential
+        # ("complete individual objects") prints the next object's first move would then
+        # drive the nozzle sideways into already finished, taller objects. Lift above the
+        # tallest printed part first, travel, then drop to where the slicer expects us.
+        if not self._settings.get_boolean(["safe_travel"]):
+            return []
+        if self.relative_positioning:
+            self._console_logger.info("Safe travel skipped: relative positioning (G91) active")
+            return []
+        if self.sent_pos["z"] is None or self.max_printed_z is None:
+            self._console_logger.info("Safe travel skipped: Z position unknown")
+            return []
+
+        z_feed = self._settings.get_int(["safe_travel_z_feed"]) or 600
+        xy_feed = self._settings.get_int(["safe_travel_xy_feed"]) or 6000
+        clearance = self._settings.get_float(["safe_travel_clearance"]) or 0.0
+
+        safe_z = max(self.max_printed_z + clearance, self.sent_pos["z"])
+        try:
+            max_z = float(self._printer_profile_manager.get_current_or_default()["volume"]["height"])
+        except Exception:
+            max_z = None
+        if max_z and safe_z > max_z:
+            self._console_logger.info("Safe travel height {0} exceeds build volume, limited to {1}".format(safe_z, max_z))
+            safe_z = max(max_z, self.sent_pos["z"])
+
+        gcode = []
+        if safe_z > self.sent_pos["z"]:
+            gcode.append("G1 Z{0:.3f} F{1}".format(safe_z, z_feed))
+        if self.file_pos["x"] is not None and self.file_pos["y"] is not None:
+            gcode.append("G1 X{0:.3f} Y{1:.3f} F{2}".format(self.file_pos["x"], self.file_pos["y"], xy_feed))
+        if self.file_pos["z"] is not None and self.file_pos["z"] != safe_z:
+            gcode.append("G1 Z{0:.3f} F{1}".format(self.file_pos["z"], z_feed))
+        if self.file_pos["f"] is not None:
+            # restore the slicer's modal feedrate
+            gcode.append("G1 F{0:g}".format(self.file_pos["f"]))
+
+        self._console_logger.info("Safe travel after skip (max printed Z {0}): {1}".format(self.max_printed_z, gcode))
+        return gcode
 
     def register_custom_events(*args, **kwargs):
         return ["object_list", "object_cancelled", "current_object"]

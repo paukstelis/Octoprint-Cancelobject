@@ -28,6 +28,7 @@ See below for instructions for specific slicers.
 * Gcode blocks that contain just functional information, like beginning or ending scripts, can be prevented from appearing in the tab by including them in a comma delimited list in the Ignored Object section. Defaults to `STARTGCODE,ENDGCODE`
 * If there are Gcode commands in a cancelled object that should not be skipped, these can be included as a comma delimited list.
 * For all slicers, it is recommended to enable relative extrusion in printer settings.
+* **Safe travel after skip** (enabled by default): skipping a cancelled object also drops the slicer's Z lifts and travel moves, so the nozzle would otherwise move sideways at the cancelled object's height. The plugin keeps track of the highest Z at which material was actually extruded. When printing resumes it lifts the nozzle above that height plus a configurable clearance, travels to the next object, and then lowers to the Z the slicer expects. This matters for sequential prints ("Complete individual objects" / "One at a time"), where the next object starts lower than parts that are already finished. Clearance and feedrates can be set in the plugin settings.
 
 ### Cura (3.6.0 or greater)
 * Turn combing off! As of right now, Cura writes additional moves after ;MESH tags as part of combing that cause issues.

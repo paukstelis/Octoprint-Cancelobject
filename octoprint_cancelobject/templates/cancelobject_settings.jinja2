@@ -44,6 +44,37 @@
             <i class="icon icon-info-sign" title="Any GCODE commands that should not be skipped during a skipping block can be placed here as a comma delimited list of regular expressions. Ex. G1 Z.*,G0 F/d+ Z,M104,M109,M240. This may impact performance!" data-toggle="tooltip"></i>
             <input type="text" class="input-block-level" data-bind="value: allowed">
         </div>
+        <h3>Safe travel after skip</h3>
+        <p>
+        <label class="control-label">{{ _('Enable safe travel') }}</label>
+        <div class="controls">
+            <i class="icon icon-info-sign" title="After skipping a cancelled object, lift the nozzle above the tallest part printed so far, travel to the next object and lower to the height the slicer expects. Prevents crashes into finished parts, especially in sequential (complete individual objects / one at a time) prints." data-toggle="tooltip"></i><br>
+            <input type="checkbox" data-bind="checked: settings.safe_travel">
+        </div>
+        <br>
+        <label class="control-label">{{ _('Clearance above printed parts') }}</label>
+        <div class="controls">
+            <div class="input-append">
+                <input type="number" step="0.1" min="0" class="input-mini" data-bind="value: settings.safe_travel_clearance">
+                <span class="add-on">mm</span>
+            </div>
+        </div>
+        <br>
+        <label class="control-label">{{ _('Z feedrate') }}</label>
+        <div class="controls">
+            <div class="input-append">
+                <input type="number" step="1" min="1" class="input-mini" data-bind="value: settings.safe_travel_z_feed">
+                <span class="add-on">mm/min</span>
+            </div>
+        </div>
+        <br>
+        <label class="control-label">{{ _('XY feedrate') }}</label>
+        <div class="controls">
+            <div class="input-append">
+                <input type="number" step="1" min="1" class="input-mini" data-bind="value: settings.safe_travel_xy_feed">
+                <span class="add-on">mm/min</span>
+            </div>
+        </div>
         <h3>Other</h3>
         <p>
         <label class="control-label">{{ _('Show active in NavBar') }}</label>
